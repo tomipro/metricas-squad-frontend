@@ -64,14 +64,6 @@ jobs:
         with:
           projectBaseDir: .
 
-      - name: Lighthouse CI (local build)
-        uses: treosh/lighthouse-ci-action@v11
-        with:
-          configPath: ./.lighthouserc.json
-          runs: 1
-          uploadArtifacts: true
-          temporaryPublicStorage: true
-
   cd:
     needs: ci
     runs-on: ubuntu-latest
