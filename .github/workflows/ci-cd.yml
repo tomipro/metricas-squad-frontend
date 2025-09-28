@@ -1,0 +1,93 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # crea .env con valores públicos/no sensibles; NO incluir API Keys
+      - name: Create .env
+        run: |
+          cat > .env << 'EOF'
+          REACT_APP_ANALYTICS_BASE_URL=/api/analytics
+          REACT_APP_INGEST_BASE_URL=/api/ingest
+          REACT_APP_ENVIRONMENT=${{ secrets.REACT_APP_ENVIRONMENT }}
+          REACT_APP_DEBUG=${{ secrets.REACT_APP_DEBUG }}
+          REACT_APP_ENABLE_REAL_TIME=${{ secrets.REACT_APP_ENABLE_REAL_TIME }}
+          REACT_APP_ENABLE_DEVTOOLS=${{ secrets.REACT_APP_ENABLE_DEVTOOLS }}
+          REACT_APP_API_TIMEOUT=${{ secrets.REACT_APP_API_TIMEOUT }}
+          REACT_APP_RETRY_ATTEMPTS=${{ secrets.REACT_APP_RETRY_ATTEMPTS }}
+          EOF
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build   # si usás CRA: build
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+
+      - name: Lighthouse CI (local build)
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: ./.lighthouserc.json
+          runs: 1
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CF_PAGES_PROJECT }}
+          directory: build
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
