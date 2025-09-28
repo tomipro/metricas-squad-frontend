@@ -27,12 +27,14 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # crea .env con valores públicos/no sensibles; NO incluir API Keys
+      # crea .env con las URLs directas de API Gateway y las API Keys
       - name: Create .env
         run: |
           cat > .env << 'EOF'
           REACT_APP_ANALYTICS_BASE_URL=https://f5le0z2f39.execute-api.us-east-1.amazonaws.com/dev/analytics
           REACT_APP_INGEST_BASE_URL=https://f5le0z2f39.execute-api.us-east-1.amazonaws.com/dev
+          REACT_APP_ANALYTICS_API_KEY=${{ secrets.REACT_APP_ANALYTICS_API_KEY }}
+          REACT_APP_INGEST_API_KEY=${{ secrets.REACT_APP_INGEST_API_KEY }}
           REACT_APP_ENVIRONMENT=${{ secrets.REACT_APP_ENVIRONMENT }}
           REACT_APP_DEBUG=${{ secrets.REACT_APP_DEBUG }}
           REACT_APP_ENABLE_REAL_TIME=${{ secrets.REACT_APP_ENABLE_REAL_TIME }}
@@ -50,13 +52,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload build + functions artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend
-          path: |
-            build
-            functions
+          path: build
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -78,7 +78,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend
-          path: .
+          path: build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -86,6 +86,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ secrets.CF_PAGES_PROJECT }}
-          directory: .
+          directory: build
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main
