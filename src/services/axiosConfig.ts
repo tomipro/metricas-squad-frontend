@@ -5,23 +5,29 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 
-// API Configuration - only base URLs (proxied through Cloudflare Pages)
+// API Configuration - base URLs + keys (direct from env)
 const ANALYTICS_BASE_URL = process.env.REACT_APP_ANALYTICS_BASE_URL;
 const INGEST_BASE_URL = process.env.REACT_APP_INGEST_BASE_URL;
+const ANALYTICS_API_KEY = process.env.REACT_APP_ANALYTICS_API_KEY;
+const INGEST_API_KEY = process.env.REACT_APP_INGEST_API_KEY;
 
 // Debug environment variables in development
 if (process.env.NODE_ENV === "development") {
   console.log("Environment variables loaded:", {
     ANALYTICS_BASE_URL: ANALYTICS_BASE_URL ? "✓ Loaded" : "✗ Missing",
     INGEST_BASE_URL: INGEST_BASE_URL ? "✓ Loaded" : "✗ Missing",
+    ANALYTICS_API_KEY: ANALYTICS_API_KEY ? "✓ Loaded" : "✗ Missing",
+    INGEST_API_KEY: INGEST_API_KEY ? "✓ Loaded" : "✗ Missing",
   });
 }
 
 // Validate required environment variables
-if (!ANALYTICS_BASE_URL || !INGEST_BASE_URL) {
+if (!ANALYTICS_BASE_URL || !INGEST_BASE_URL || !ANALYTICS_API_KEY || !INGEST_API_KEY) {
   const missingVars = [];
   if (!ANALYTICS_BASE_URL) missingVars.push("REACT_APP_ANALYTICS_BASE_URL");
   if (!INGEST_BASE_URL) missingVars.push("REACT_APP_INGEST_BASE_URL");
+  if (!ANALYTICS_API_KEY) missingVars.push("REACT_APP_ANALYTICS_API_KEY");
+  if (!INGEST_API_KEY) missingVars.push("REACT_APP_INGEST_API_KEY");
 
   throw new Error(
     `Missing required environment variables: ${missingVars.join(
@@ -32,26 +38,27 @@ if (!ANALYTICS_BASE_URL || !INGEST_BASE_URL) {
 
 // Create Analytics API instance
 const analyticsApi: AxiosInstance = axios.create({
-  baseURL: ANALYTICS_BASE_URL, // Example: /api/analytics
+  baseURL: ANALYTICS_BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
+    "x-api-key": ANALYTICS_API_KEY,
   },
 });
 
 // Create Ingest API instance
 const ingestApi: AxiosInstance = axios.create({
-  baseURL: INGEST_BASE_URL, // Example: /api/ingest
+  baseURL: INGEST_BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
+    "x-api-key": INGEST_API_KEY,
   },
 });
 
 // Request interceptor for Analytics API
 analyticsApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Add timestamp to prevent caching
     if (config.method === "get") {
       config.params = {
         ...config.params,
@@ -66,7 +73,6 @@ analyticsApi.interceptors.request.use(
 // Request interceptor for Ingest API
 ingestApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Log events for debugging
     if (process.env.NODE_ENV === "development") {
       console.log("Ingesting event:", config.data);
     }
