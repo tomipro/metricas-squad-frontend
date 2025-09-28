@@ -44,17 +44,19 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
-    #   - name: Test
-    #     run: npm test --if-present
+      # - name: Test
+      #   run: npm test --if-present
 
       - name: Build
         run: npm run build
 
-      - name: Upload build artifact
+      - name: Upload build + functions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build
-          path: build   # si usás CRA: build
+          name: frontend
+          path: |
+            build
+            functions
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -70,13 +72,13 @@ jobs:
     permissions:
       contents: read
       deployments: write
-      
+
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: build
-          path: build
+          name: frontend
+          path: .
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -84,7 +86,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ secrets.CF_PAGES_PROJECT }}
-          directory: build
+          directory: .
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main
-  
