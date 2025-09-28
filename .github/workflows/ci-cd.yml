@@ -67,6 +67,10 @@ jobs:
   cd:
     needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -83,3 +87,4 @@ jobs:
           directory: build
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main
+  
