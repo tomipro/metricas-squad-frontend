@@ -1,0 +1,75 @@
+# ---- Java / Spring Boot ----
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.pid
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# H2 Database
+*.h2.db
+*.trace.db
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# ---- Node / Frontend ----
+# node_modules en cualquier carpeta del front
+Frontend/**/node_modules/
+node_modules/
+
+# builds y caches
+Frontend/build/
+Frontend/dist/
+Frontend/.parcel-cache/
+Frontend/.next/
+Frontend/.turbo/
+
+# reports y coverage
+coverage/
+
+# env files
+.env
+.env.*
+
+# ---- Logs ----
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- IDE / Editor ----
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+*.swp
+*.swo
+
+# ---- OS ----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
