@@ -1,21 +1,8 @@
-// =============================================================================
-// SERVICE EXPORTS
-// =============================================================================
-
-// Axios Configuration
 export { analyticsApi, ingestApi, apiRequest } from './axiosConfig';
-
-// Analytics Service
 export * from './analyticsService';
-
-// Ingest Service
 export * from './ingestService';
+export * from './authService';
 
-// =============================================================================
-// TYPE EXPORTS
-// =============================================================================
-
-// Analytics Types
 export type {
   HealthStatus,
   FunnelData,
@@ -32,7 +19,6 @@ export type {
   TimeToComplete,
 } from './analyticsService';
 
-// Ingest Types
 export type {
   SearchEvent,
   ReservationEvent,
@@ -41,3 +27,9 @@ export type {
   IngestEvent,
   IngestResponse,
 } from './ingestService';
+
+export type {
+  LoginRequest,
+  LoginResponse,
+  AuthError,
+} from './authService';

@@ -4,11 +4,13 @@ import ExecutiveSummary from './ExecutiveSummary';
 import Operations from './Operations';
 import Analytics from './Analytics';
 import FleetManagement from './FleetManagement';
+import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('executive');
   const [selectedPeriod, setSelectedPeriod] = useState('30');
+  const { user, logout } = useAuth();
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -29,8 +31,26 @@ const Dashboard: React.FC = () => {
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="container">
-          <h1>Dashboard de Métricas</h1>
-          <p className="dashboard-subtitle">Reservas de Vuelos - Análisis Integral</p>
+          <div className="header-content">
+            <div className="header-info">
+              <h1>Dashboard de Métricas</h1>
+              <p className="dashboard-subtitle">Reservas de Vuelos - Análisis Integral</p>
+            </div>
+            <div className="header-user">
+              <div className="user-info">
+                <span className="user-name">{user?.name || 'Usuario'}</span>
+                <span className="user-role">{user?.role || 'Admin'}</span>
+              </div>
+              <button 
+                className="logout-button"
+                onClick={logout}
+                title="Cerrar sesión"
+              >
+                <span className="logout-icon">🚪</span>
+                Salir
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 

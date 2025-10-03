@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 // Mock environment variables - using development-like values
 process.env.REACT_APP_ANALYTICS_BASE_URL = 'http://localhost:3001/api/analytics';
 process.env.REACT_APP_INGEST_BASE_URL = 'http://localhost:3001/api/ingest';
+process.env.REACT_APP_AUTH_BASE_URL = 'https://grupo5-usuarios.vercel.app/api/auth';
 process.env.REACT_APP_ANALYTICS_API_KEY = 'dev-analytics-key-12345';
 process.env.REACT_APP_INGEST_API_KEY = 'dev-ingest-key-67890';
 
