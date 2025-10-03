@@ -183,7 +183,6 @@ export const useExecutiveSummary = (days: number = 7) => {
   const funnelData = useFunnelData(days);
   const averageFare = useAverageFare(days);
   const monthlyRevenue = useMonthlyRevenue(6);
-  const lifetimeValue = useLifetimeValue(10);
   const revenuePerUser = useRevenuePerUser(days, 10);
   const paymentSuccess = usePaymentSuccessRate(days);
   const anticipation = useAnticipation(90);
@@ -192,7 +191,6 @@ export const useExecutiveSummary = (days: number = 7) => {
     funnelData,
     averageFare,
     monthlyRevenue,
-    lifetimeValue,
     revenuePerUser,
     paymentSuccess,
     anticipation,
@@ -200,7 +198,6 @@ export const useExecutiveSummary = (days: number = 7) => {
       funnelData.isLoading,
       averageFare.isLoading,
       monthlyRevenue.isLoading,
-      lifetimeValue.isLoading,
       revenuePerUser.isLoading,
       paymentSuccess.isLoading,
       anticipation.isLoading,
@@ -209,7 +206,6 @@ export const useExecutiveSummary = (days: number = 7) => {
       funnelData.isError,
       averageFare.isError,
       monthlyRevenue.isError,
-      lifetimeValue.isError,
       revenuePerUser.isError,
       paymentSuccess.isError,
       anticipation.isError,
@@ -221,27 +217,23 @@ export const useExecutiveSummary = (days: number = 7) => {
 export const useOperations = (days: number = 7): OperationsHookReturn => {
   const funnelData = useFunnelData(days);
   const paymentSuccess = usePaymentSuccessRate(days);
-  const timeToComplete = useTimeToComplete(days);
   const cancellationRate = useCancellationRate(days);
   const popularAirlines = usePopularAirlines(days, 5);
 
   return {
     funnelData,
     paymentSuccess,
-    timeToComplete,
     cancellationRate,
     popularAirlines,
     isLoading: [
       funnelData.isLoading,
       paymentSuccess.isLoading,
-      timeToComplete.isLoading,
       cancellationRate.isLoading,
       popularAirlines.isLoading,
     ].some(Boolean),
     isError: [
       funnelData.isError,
       paymentSuccess.isError,
-      timeToComplete.isError,
       cancellationRate.isError,
       popularAirlines.isError,
     ].some(Boolean),

@@ -50,12 +50,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     {
       name: "Aprobado",
       value: paymentSuccess?.data?.approved || 0,
-      count: paymentSuccess?.data?.approved || 0
+      count: paymentSuccess?.data?.approved || 0,
+      color: "#2ECC71" // Verde
     },
     {
       name: "Rechazado",
       value: paymentSuccess?.data?.rejected || 0,
-      count: paymentSuccess?.data?.rejected || 0
+      count: paymentSuccess?.data?.rejected || 0,
+      color: "#ff0000" // Rojo
     }
   ];
 
@@ -67,11 +69,51 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
       days: anticipation?.data?.avg_anticipation_days || 0
     }
   ];
+
+  // Mock data: Porcentaje de ocupación del avión por aerolínea
+  const airlineOccupancyData: ChartDataPoint[] = [
+    {
+      name: "Aerolíneas Argentinas (AR)",
+      value: 82.5,
+      percentage: 82.5
+    },
+    {
+      name: "LATAM (LA)",
+      value: 78.3,
+      percentage: 78.3
+    },
+    {
+      name: "Avianca (AV)",
+      value: 85.7,
+      percentage: 85.7
+    },
+    {
+      name: "Copa Airlines (CM)",
+      value: 73.2,
+      percentage: 73.2
+    },
+    {
+      name: "American Airlines (AA)",
+      value: 88.1,
+      percentage: 88.1
+    },
+    {
+      name: "United Airlines (UA)",
+      value: 76.9,
+      percentage: 76.9
+    }
+  ];
   
   // Create columns for user origins table with proper typing
   const userOriginsColumns: TableColumn[] = [
     { key: 'country', title: 'País' },
     { key: 'users', title: 'Usuarios', render: (value: number) => value.toLocaleString() }
+  ];
+
+  // Create columns for airline occupancy table with proper typing
+  const airlineOccupancyColumns: TableColumn[] = [
+    { key: 'name', title: 'Aerolínea' },
+    { key: 'value', title: 'Ocupación (%)', render: (value: number) => `${value.toFixed(1)}%` }
   ];
 
   // Show loading state with skeleton
@@ -106,6 +148,15 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
           <h2 className="section-title">Análisis de Anticipación de Reserva</h2>
           <div className="grid grid-cols-1">
             <ChartCardSkeleton height={300} type="bar" />
+          </div>
+        </section>
+
+        {/* Airline Occupancy Analysis Skeleton */}
+        <section className="metrics-section">
+          <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
+          <div className="grid grid-cols-2">
+            <ChartCardSkeleton height={300} type="bar" />
+            <DataTableSkeleton rows={6} columns={2} />
           </div>
         </section>
       </div>
@@ -183,6 +234,27 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
             height={300}
             valueKey="value"
             color="#F59E0B"
+          />
+        </div>
+      </section>
+
+      {/* Airline Occupancy Analysis */}
+      <section className="metrics-section">
+        <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
+        <div className="grid grid-cols-2">
+          <ChartCard 
+            title="Ocupación de Aviones por Aerolínea (%)"
+            data={airlineOccupancyData}
+            type="bar"
+            height={300}
+            valueKey="value"
+            color="#8B5CF6"
+          />
+          <DataTable 
+            title="Detalle de Ocupación por Aerolínea"
+            data={airlineOccupancyData}
+            columns={airlineOccupancyColumns}
+            maxRows={6}
           />
         </div>
       </section>

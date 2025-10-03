@@ -145,7 +145,6 @@ export interface ExecutiveSummaryHookReturn {
   funnelData: UseQueryResult<FunnelData>;
   averageFare: UseQueryResult<AverageFareData>;
   monthlyRevenue: UseQueryResult<MonthlyRevenueData>;
-  lifetimeValue: UseQueryResult<LifetimeValueData>;
   revenuePerUser: UseQueryResult<RevenuePerUserData>;
   paymentSuccess: UseQueryResult<PaymentSuccessData>;
   anticipation: UseQueryResult<AnticipationData>;
@@ -156,7 +155,6 @@ export interface ExecutiveSummaryHookReturn {
 export interface OperationsHookReturn {
   funnelData: UseQueryResult<FunnelData>;
   paymentSuccess: UseQueryResult<PaymentSuccessData>;
-  timeToComplete: UseQueryResult<TimeToCompleteData>;
   cancellationRate: UseQueryResult<CancellationRateData>;
   popularAirlines: UseQueryResult<PopularAirlinesData>;
   isLoading: boolean;

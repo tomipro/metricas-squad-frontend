@@ -122,7 +122,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={(typeof entry.color === 'string' ? entry.color : undefined) || COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip 

@@ -23,7 +23,6 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
   const {
     funnelData,
     paymentSuccess,
-    timeToComplete,
     cancellationRate,
     popularAirlines,
     isLoading: apiLoading,
@@ -43,12 +42,6 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
       value: paymentSuccess?.data?.success_rate_percent?.toFixed(1) || "0.0",
       unit: "%",
       change: 0
-    },
-    {
-      title: "Tiempo de Reserva",
-      value: timeToComplete?.data?.avg_minutes?.search_to_reserve?.toFixed(1) || "0.0",
-      unit: "min",
-      change: 0
     }
   ];
 
@@ -57,18 +50,6 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
       title: "Tasa de Cancelación",
       value: cancellationRate?.data?.cancellation_rate_percent?.toFixed(1) || "0.0",
       unit: "%",
-      change: 0
-    },
-    {
-      title: "Tiempo de Pago a Reserva",
-      value: timeToComplete?.data?.avg_minutes?.reserve_to_pay?.toFixed(1) || "0.0",
-      unit: "min",
-      change: 0
-    },
-    {
-      title: "Tiempo Total de Reserva",
-      value: timeToComplete?.data?.avg_minutes?.search_to_pay?.toFixed(1) || "0.0",
-      unit: "min",
       change: 0
     }
   ];
@@ -95,16 +76,16 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
         {/* Booking System Performance Skeleton */}
         <section className="metrics-section">
           <h2 className="section-title">Rendimiento del Sistema de Reservas</h2>
-          <div className="grid grid-cols-3">
-            <MetricCardSkeleton count={3} />
+          <div className="grid grid-cols-2">
+            <MetricCardSkeleton count={2} />
           </div>
         </section>
 
         {/* Flight Operations Skeleton */}
         <section className="metrics-section">
           <h2 className="section-title">Operaciones de Vuelo y Disponibilidad</h2>
-          <div className="grid grid-cols-3">
-            <MetricCardSkeleton count={3} />
+          <div className="grid grid-cols-1">
+            <MetricCardSkeleton count={1} />
           </div>
         </section>
 
@@ -139,7 +120,7 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
       {/* Booking System Performance */}
       <section className="metrics-section">
         <h2 className="section-title">Rendimiento del Sistema de Reservas</h2>
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-2">
           {realTimeOperationalMetrics.map((metric, index) => (
             <MetricCard key={`operational-${index}`} metric={metric} />
           ))}
@@ -149,7 +130,7 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
       {/* Flight Operations and Availability */}
       <section className="metrics-section">
         <h2 className="section-title">Operaciones de Vuelo y Disponibilidad</h2>
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-1">
           {realTimeFlightMetrics.map((metric, index) => (
             <MetricCard key={`flight-${index}`} metric={metric} />
           ))}

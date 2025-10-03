@@ -21,38 +21,46 @@ if (process.env.NODE_ENV === "development") {
   });
 }
 
-// Validate required environment variables
-if (!ANALYTICS_BASE_URL || !INGEST_BASE_URL || !ANALYTICS_API_KEY || !INGEST_API_KEY) {
+// Validate required environment variables with console warning instead of throwing error
+const validateEnvVars = () => {
   const missingVars = [];
   if (!ANALYTICS_BASE_URL) missingVars.push("REACT_APP_ANALYTICS_BASE_URL");
   if (!INGEST_BASE_URL) missingVars.push("REACT_APP_INGEST_BASE_URL");
   if (!ANALYTICS_API_KEY) missingVars.push("REACT_APP_ANALYTICS_API_KEY");
   if (!INGEST_API_KEY) missingVars.push("REACT_APP_INGEST_API_KEY");
 
-  throw new Error(
-    `Missing required environment variables: ${missingVars.join(
-      ", "
-    )}. Please check your .env file and restart the development server.`
-  );
-}
+  if (missingVars.length > 0) {
+    console.error(
+      `⚠️ Missing required environment variables: ${missingVars.join(", ")}`
+    );
+    console.error(
+      "Please check your .env file and restart the development server."
+    );
+    return false;
+  }
+  return true;
+};
 
-// Create Analytics API instance
+// Check if env vars are valid
+const envVarsValid = validateEnvVars();
+
+// Create Analytics API instance with fallback values
 const analyticsApi: AxiosInstance = axios.create({
-  baseURL: ANALYTICS_BASE_URL,
+  baseURL: ANALYTICS_BASE_URL || 'http://localhost:3001/analytics',
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    "x-api-key": ANALYTICS_API_KEY,
+    "x-api-key": ANALYTICS_API_KEY || 'fallback-key',
   },
 });
 
-// Create Ingest API instance
+// Create Ingest API instance with fallback values
 const ingestApi: AxiosInstance = axios.create({
-  baseURL: INGEST_BASE_URL,
+  baseURL: INGEST_BASE_URL || 'http://localhost:3001',
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    "x-api-key": INGEST_API_KEY,
+    "x-api-key": INGEST_API_KEY || 'fallback-key',
   },
 });
 

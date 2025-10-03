@@ -24,7 +24,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
     funnelData,
     averageFare,
     monthlyRevenue,
-    lifetimeValue,
     revenuePerUser,
     paymentSuccess,
     anticipation,
@@ -35,12 +34,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
   // Transform API data to match component expectations with proper typing
   const realTimeMetrics: MetricData[] = [
     {
-      title: "Tasa de Conversión",
-      value: funnelData?.data?.conversion?.search_to_pay?.toFixed(1) || "0.0",
-      unit: "%",
-      change: 0 // This would come from comparison with previous period
-    },
-    {
       title: "Valor Promedio de Reserva",
       value: `$${averageFare?.data?.avg_fare?.toFixed(0) || "0"}`,
       change: 0
@@ -48,11 +41,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
     {
       title: "Ingresos Mensuales",
       value: `$${monthlyRevenue?.data?.monthly?.reduce((sum: number, month: { revenue: number }) => sum + month.revenue, 0)?.toFixed(1) || "0"}M`,
-      change: 0
-    },
-    {
-      title: "Valor de Vida del Cliente",
-      value: `$${lifetimeValue?.data?.ltv?.[0]?.total_spend?.toFixed(0) || "0"}`,
       change: 0
     },
     {
@@ -124,8 +112,8 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
         {/* Financial Performance Metrics Skeleton */}
         <section className="metrics-section">
           <h2 className="section-title">Rendimiento Financiero del Sistema de Reservas</h2>
-          <div className="grid grid-cols-5">
-            <MetricCardSkeleton count={5} />
+          <div className="grid grid-cols-3">
+            <MetricCardSkeleton count={3} />
           </div>
         </section>
 
@@ -171,7 +159,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
       {/* Financial Performance Metrics */}
       <section className="metrics-section">
         <h2 className="section-title">Rendimiento Financiero del Sistema de Reservas</h2>
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-3">
           {realTimeMetrics.map((metric, index) => (
             <MetricCard key={`revenue-${selectedPeriod}-${index}`} metric={metric} />
           ))}
