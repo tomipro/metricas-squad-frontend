@@ -31,6 +31,19 @@ const authApi = axios.create({
   },
 });
 
+// Request interceptor to check token validity before making auth requests
+authApi.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token && isTokenExpired(token)) {
+      logoutAndRedirect();
+      return Promise.reject(new Error('Token expired'));
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
     const response = await authApi.post<LoginResponse>('/login', credentials);
@@ -69,6 +82,14 @@ export const logout = (): void => {
   localStorage.removeItem('user_data');
 };
 
+export const logoutAndRedirect = (): void => {
+  logout();
+  // Only redirect if we're not already on the login page
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+};
+
 export const getToken = (): string | null => {
   return localStorage.getItem('auth_token');
 };
@@ -80,7 +101,18 @@ export const getUserData = (): any | null => {
 
 export const isAuthenticated = (): boolean => {
   const token = getToken();
-  return token !== null && token.length > 0;
+  if (!token || token.length === 0) {
+    return false;
+  }
+  
+  // Check if token is expired
+  if (isTokenExpired(token)) {
+    // Token is expired, clean up and return false
+    logout();
+    return false;
+  }
+  
+  return true;
 };
 
 export const isValidToken = (token: string): boolean => {
@@ -88,7 +120,66 @@ export const isValidToken = (token: string): boolean => {
   return parts.length === 3;
 };
 
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return true; // Invalid token format
+    }
+
+    // Decode the payload (without verification for client-side check)
+    const payload = JSON.parse(atob(parts[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    // Check if token has expiration and if it's expired
+    if (payload.exp && payload.exp < currentTime) {
+      return true; // Token is expired
+    }
+    
+    return false; // Token is valid
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return true; // Invalid token format or decoding error
+  }
+};
+
 export const getAuthHeaders = (): Record<string, string> => {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  success: boolean;
+}
+
+export const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
+  try {
+    const response = await authApi.post<ForgotPasswordResponse>('/forgot-password', { email });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      const authError: AuthError = {
+        message: error.response.data?.message || 'Error al enviar el email de recuperación',
+        status: error.response.status,
+      };
+      throw authError;
+    } else if (error.request) {
+      const authError: AuthError = {
+        message: 'Error de conexión. Verifica tu conexión a internet.',
+        status: 0,
+      };
+      throw authError;
+    } else {
+      const authError: AuthError = {
+        message: 'Error inesperado. Intenta nuevamente.',
+        status: 0,
+      };
+      throw authError;
+    }
+  }
 };

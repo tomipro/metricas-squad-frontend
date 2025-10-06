@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login, logout, getUserData, isAuthenticated, LoginRequest, LoginResponse, AuthError } from '../services/authService';
+import { login, logout, logoutAndRedirect, getUserData, isAuthenticated, LoginRequest, LoginResponse, AuthError } from '../services/authService';
+import { useTokenValidation } from '../hooks/useTokenValidation';
 
 interface User {
   id: string;
@@ -28,6 +29,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Enable token validation only when user is authenticated
+  useTokenValidation({ 
+    enabled: !!user,
+    checkInterval: 5 * 60 * 1000 // Check every 5 minutes
+  });
 
   useEffect(() => {
     const initializeAuth = () => {
@@ -67,6 +74,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const handleLogout = (): void => {
     logout();
+    setUser(null);
+    setError(null);
+  };
+
+  const handleLogoutAndRedirect = (): void => {
+    logoutAndRedirect();
     setUser(null);
     setError(null);
   };

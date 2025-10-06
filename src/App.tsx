@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import Dashboard from './components/Dashboard';
-import { Login } from './components/Auth';
+import { AuthContainer } from './components/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -23,7 +23,7 @@ function App() {
         <Router>
           <div className="App">
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<AuthContainer />} />
               <Route 
                 path="/dashboard" 
                 element={

@@ -4,9 +4,10 @@ import './Login.css';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
+  onForgotPassword?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onForgotPassword }) => {
   const { login, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -126,12 +127,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="form-options">
-              <label className="checkbox-container">
-                <input type="checkbox" />
-                <span className="checkmark"></span>
-                Recordar sesión
-              </label>
-              <button type="button" className="forgot-password">¿Olvidaste tu contraseña?</button>
+              <button 
+                type="button" 
+                className="forgot-password"
+                onClick={onForgotPassword}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
 
             <button
@@ -149,13 +151,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               )}
             </button>
           </form>
-
-          <div className="login-footer">
-            <p className="copyright">
-              ©2024 Todos los derechos reservados. Metrics Squad Inc.
-            </p>
-            <button type="button" className="privacy-link">Política de Privacidad</button>
-          </div>
         </div>
       </div>
 

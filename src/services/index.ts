@@ -32,4 +32,6 @@ export type {
   LoginRequest,
   LoginResponse,
   AuthError,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
 } from './authService';
