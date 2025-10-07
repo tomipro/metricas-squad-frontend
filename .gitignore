@@ -40,6 +40,8 @@ Frontend/dist/
 Frontend/.parcel-cache/
 Frontend/.next/
 Frontend/.turbo/
+build/
+dist/
 
 # reports y coverage
 coverage/
