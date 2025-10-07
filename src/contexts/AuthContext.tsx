@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login, logout, logoutAndRedirect, getUserData, isAuthenticated, LoginRequest, LoginResponse, AuthError } from '../services/authService';
+import { login, logout, getUserData, isAuthenticated, LoginRequest, LoginResponse, AuthError } from '../services/authService';
 import { useTokenValidation } from '../hooks/useTokenValidation';
 
 interface User {
@@ -74,12 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const handleLogout = (): void => {
     logout();
-    setUser(null);
-    setError(null);
-  };
-
-  const handleLogoutAndRedirect = (): void => {
-    logoutAndRedirect();
     setUser(null);
     setError(null);
   };

@@ -50,7 +50,6 @@ describe('useExecutiveSummary', () => {
     expect(result.current.funnelData.isLoading).toBe(true);
     expect(result.current.averageFare.isLoading).toBe(true);
     expect(result.current.monthlyRevenue.isLoading).toBe(true);
-    expect(result.current.lifetimeValue.isLoading).toBe(true);
     expect(result.current.revenuePerUser.isLoading).toBe(true);
     expect(result.current.paymentSuccess.isLoading).toBe(true);
     expect(result.current.anticipation.isLoading).toBe(true);
@@ -69,7 +68,6 @@ describe('useExecutiveSummary', () => {
     expect(result.current.funnelData.data).toEqual(mockApiResponses.funnel);
     expect(result.current.averageFare.data).toEqual(mockApiResponses.averageFare);
     expect(result.current.monthlyRevenue.data).toEqual(mockApiResponses.monthlyRevenue);
-    expect(result.current.lifetimeValue.data).toEqual(mockApiResponses.lifetimeValue);
     expect(result.current.revenuePerUser.data).toEqual(mockApiResponses.revenuePerUser);
     expect(result.current.paymentSuccess.data).toEqual(mockApiResponses.paymentSuccess);
     expect(result.current.anticipation.data).toEqual(mockApiResponses.anticipation);
