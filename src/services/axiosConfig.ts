@@ -4,6 +4,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
+import { getToken, logoutAndRedirect, isTokenExpired } from "./authService";
 
 // API Configuration - base URLs + keys (direct from env)
 const ANALYTICS_BASE_URL = process.env.REACT_APP_ANALYTICS_BASE_URL;
@@ -59,6 +60,13 @@ const ingestApi: AxiosInstance = axios.create({
 // Request interceptor for Analytics API
 analyticsApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Check token validity before making request
+    const token = getToken();
+    if (token && isTokenExpired(token)) {
+      logoutAndRedirect();
+      return Promise.reject(new Error('Token expired'));
+    }
+    
     if (config.method === "get") {
       config.params = {
         ...config.params,
@@ -73,6 +81,13 @@ analyticsApi.interceptors.request.use(
 // Request interceptor for Ingest API
 ingestApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Check token validity before making request
+    const token = getToken();
+    if (token && isTokenExpired(token)) {
+      logoutAndRedirect();
+      return Promise.reject(new Error('Token expired'));
+    }
+    
     if (process.env.NODE_ENV === "development") {
       console.log("Ingesting event:", config.data);
     }

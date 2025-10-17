@@ -321,14 +321,16 @@ describe('ExecutiveSummary Component', () => {
     });
 
     it('should handle missing data gracefully', () => {
+      // Create a custom mock with some missing data
+      const successMock = mockUseExecutiveSummarySuccess();
       const mockDataWithMissingFields = {
-        ...mockUseExecutiveSummarySuccess(),
+        ...successMock,
         funnelData: {
-          ...mockUseExecutiveSummarySuccess().funnelData,
+          ...successMock.funnelData,
           data: null,
         },
         averageFare: {
-          ...mockUseExecutiveSummarySuccess().averageFare,
+          ...successMock.averageFare,
           data: null,
         },
       };
