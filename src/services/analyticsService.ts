@@ -113,6 +113,95 @@ export interface TimeToComplete {
   };
 }
 
+// New Analytics Types
+export interface SummaryData {
+  period_days: number;
+  summary: {
+    total_events: number;
+    total_revenue: number;
+    validation_rate: number;
+    total_bookings: number;
+  };
+  events_by_type: Array<{
+    type: string;
+    count: number;
+    avg_price: number | null;
+  }>;
+  validation_breakdown: Array<{
+    status: string;
+    count: number;
+  }>;
+  recent_activity: Array<{
+    eventId: string;
+    type: string;
+    timestamp: string;
+    received_at: string;
+    validation_status: string;
+  }>;
+}
+
+export interface RecentActivity {
+  recent_events: Array<{
+    eventId: string;
+    type: string;
+    timestamp: string;
+    received_at: string;
+    validation_status: string;
+  }>;
+  count: number;
+  period_hours: number;
+}
+
+export interface SearchMetrics {
+  period_days: number;
+  top: number;
+  search_metrics: Array<{
+    search_id: string;
+    user_id: string;
+    origin: string;
+    destination: string;
+    search_count: number;
+    results_count: number;
+    conversion_rate: number;
+  }>;
+}
+
+export interface CatalogAirlineSummary {
+  period_days: number;
+  currency: string;
+  airlines: Array<{
+    airline_code: string;
+    airline_name: string;
+    total_flights: number;
+    total_revenue: number;
+    avg_price: number;
+    market_share: number;
+  }>;
+}
+
+export interface SearchCartSummary {
+  period_days: number;
+  top: number;
+  cart_summary: Array<{
+    user_id: string;
+    cart_items: number;
+    total_value: number;
+    currency: string;
+    conversion_rate: number;
+    avg_time_in_cart: number;
+  }>;
+}
+
+export interface FlightsAircraft {
+  period_days: number;
+  aircraft: Array<{
+    aircraftId: string;
+    airlineBrand: string;
+    capacity: number;
+    updates: number;
+  }>;
+}
+
 // =============================================================================
 // ANALYTICS API FUNCTIONS
 // =============================================================================
@@ -128,7 +217,7 @@ export const getHealthStatus = (): Promise<HealthStatus> =>
 export const getFunnelData = (days: number = 7): Promise<FunnelData> =>
   apiRequest<FunnelData>(analyticsApi, {
     method: 'GET',
-    url: '/funnel',
+    url: '/analytics/funnel',
     params: { days },
   });
 
@@ -136,7 +225,7 @@ export const getFunnelData = (days: number = 7): Promise<FunnelData> =>
 export const getAverageFare = (days: number = 7): Promise<AverageFare> =>
   apiRequest<AverageFare>(analyticsApi, {
     method: 'GET',
-    url: '/avg-fare',
+    url: '/analytics/avg-fare',
     params: { days },
   });
 
@@ -144,7 +233,7 @@ export const getAverageFare = (days: number = 7): Promise<AverageFare> =>
 export const getMonthlyRevenue = (months: number = 6): Promise<MonthlyRevenue> =>
   apiRequest<MonthlyRevenue>(analyticsApi, {
     method: 'GET',
-    url: '/revenue-monthly',
+    url: '/analytics/revenue-monthly',
     params: { months },
   });
 
@@ -152,7 +241,7 @@ export const getMonthlyRevenue = (months: number = 6): Promise<MonthlyRevenue> =
 export const getLifetimeValue = (top: number = 10): Promise<LifetimeValue> =>
   apiRequest<LifetimeValue>(analyticsApi, {
     method: 'GET',
-    url: '/ltv',
+    url: '/analytics/ltv',
     params: { top },
   });
 
@@ -160,7 +249,7 @@ export const getLifetimeValue = (top: number = 10): Promise<LifetimeValue> =>
 export const getRevenuePerUser = (days: number = 7, top: number = 10): Promise<RevenuePerUser> =>
   apiRequest<RevenuePerUser>(analyticsApi, {
     method: 'GET',
-    url: '/revenue-per-user',
+    url: '/analytics/revenue-per-user',
     params: { days, top },
   });
 
@@ -168,7 +257,7 @@ export const getRevenuePerUser = (days: number = 7, top: number = 10): Promise<R
 export const getPopularAirlines = (days: number = 7, top: number = 5): Promise<PopularAirlines> =>
   apiRequest<PopularAirlines>(analyticsApi, {
     method: 'GET',
-    url: '/popular-airlines',
+    url: '/analytics/popular-airlines',
     params: { days, top },
   });
 
@@ -176,7 +265,7 @@ export const getPopularAirlines = (days: number = 7, top: number = 5): Promise<P
 export const getUserOrigins = (days: number = 7, top: number = 10): Promise<UserOrigins> =>
   apiRequest<UserOrigins>(analyticsApi, {
     method: 'GET',
-    url: '/user-origins',
+    url: '/analytics/user-origins',
     params: { days, top },
   });
 
@@ -184,7 +273,7 @@ export const getUserOrigins = (days: number = 7, top: number = 10): Promise<User
 export const getBookingHours = (days: number = 7): Promise<BookingHours> =>
   apiRequest<BookingHours>(analyticsApi, {
     method: 'GET',
-    url: '/booking-hours',
+    url: '/analytics/booking-hours',
     params: { days },
   });
 
@@ -192,7 +281,7 @@ export const getBookingHours = (days: number = 7): Promise<BookingHours> =>
 export const getPaymentSuccessRate = (days: number = 7): Promise<PaymentSuccess> =>
   apiRequest<PaymentSuccess>(analyticsApi, {
     method: 'GET',
-    url: '/payment-success',
+    url: '/analytics/payment-success',
     params: { days },
   });
 
@@ -200,7 +289,7 @@ export const getPaymentSuccessRate = (days: number = 7): Promise<PaymentSuccess>
 export const getCancellationRate = (days: number = 7): Promise<CancellationRate> =>
   apiRequest<CancellationRate>(analyticsApi, {
     method: 'GET',
-    url: '/cancellation-rate',
+    url: '/analytics/cancellation-rate',
     params: { days },
   });
 
@@ -208,7 +297,7 @@ export const getCancellationRate = (days: number = 7): Promise<CancellationRate>
 export const getAnticipation = (days: number = 90): Promise<Anticipation> =>
   apiRequest<Anticipation>(analyticsApi, {
     method: 'GET',
-    url: '/anticipation',
+    url: '/analytics/anticipation',
     params: { days },
   });
 
@@ -216,6 +305,57 @@ export const getAnticipation = (days: number = 90): Promise<Anticipation> =>
 export const getTimeToComplete = (days: number = 7): Promise<TimeToComplete> =>
   apiRequest<TimeToComplete>(analyticsApi, {
     method: 'GET',
-    url: '/time-to-complete',
+    url: '/analytics/time-to-complete',
+    params: { days },
+  });
+
+// =============================================================================
+// NEW ANALYTICS API FUNCTIONS
+// =============================================================================
+
+// Summary
+export const getSummary = (): Promise<SummaryData> =>
+  apiRequest<SummaryData>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/summary',
+  });
+
+// Recent Activity
+export const getRecentActivity = (limit: number = 10, hours: number = 24): Promise<RecentActivity> =>
+  apiRequest<RecentActivity>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/recent',
+    params: { limit, hours },
+  });
+
+// Search Metrics
+export const getSearchMetrics = (days: number = 14, top: number = 10): Promise<SearchMetrics> =>
+  apiRequest<SearchMetrics>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/search-metrics',
+    params: { days, top },
+  });
+
+// Catalog Airline Summary
+export const getCatalogAirlineSummary = (days: number = 30, currency: string = 'USD'): Promise<CatalogAirlineSummary> =>
+  apiRequest<CatalogAirlineSummary>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/catalog/airline-summary',
+    params: { days, currency },
+  });
+
+// Search Cart Summary
+export const getSearchCartSummary = (days: number = 7, top: number = 10): Promise<SearchCartSummary> =>
+  apiRequest<SearchCartSummary>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/search/cart',
+    params: { days, top },
+  });
+
+// Flights Aircraft
+export const getFlightsAircraft = (days: number = 30): Promise<FlightsAircraft> =>
+  apiRequest<FlightsAircraft>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/flights/aircraft',
     params: { days },
   });

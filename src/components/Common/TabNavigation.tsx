@@ -2,7 +2,7 @@ import React from 'react';
 import DateFilter, { FilterOption } from './DateFilter';
 import './TabNavigation.css';
 
-export type TabKey = 'executive' | 'operations' | 'analytics' | 'fleet';
+export type TabKey = 'executive' | 'operations' | 'analytics' | 'fleet' | 'summary' | 'search';
 
 export interface Tab {
   key: TabKey;
@@ -37,6 +37,16 @@ const tabs: Tab[] = [
     key: 'fleet',
     label: 'Gestión de Flota',
     icon: 'GF'
+  },
+  {
+    key: 'summary',
+    label: 'Resumen General',
+    icon: 'RG'
+  },
+  {
+    key: 'search',
+    label: 'Búsquedas',
+    icon: 'BS'
   }
 ];
 

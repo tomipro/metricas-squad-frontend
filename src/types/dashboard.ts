@@ -25,106 +25,47 @@ export interface TableData {
   [key: string]: string | number;
 }
 
-// API Response Types
-export interface FunnelData {
-  period_days: number;
-  searches: number;
-  reservations: number;
-  payments: number;
-  conversion: {
-    search_to_reserve: number;
-    reserve_to_pay: number;
-    search_to_pay: number;
-  };
-}
+// Import API Response Types from analyticsService to avoid duplication
+import type {
+  FunnelData,
+  AverageFare,
+  MonthlyRevenue,
+  LifetimeValue,
+  RevenuePerUser,
+  PaymentSuccess,
+  Anticipation,
+  BookingHours,
+  UserOrigins,
+  PopularAirlines,
+  CancellationRate,
+  TimeToComplete,
+  SummaryData,
+  RecentActivity,
+  SearchMetrics,
+  CatalogAirlineSummary,
+  SearchCartSummary,
+  FlightsAircraft,
+} from '../services/analyticsService';
 
-export interface AverageFareData {
-  period_days: number;
-  avg_fare: number;
-}
-
-export interface MonthlyRevenueData {
-  months: number;
-  monthly: Array<{
-    ym: string;
-    revenue: number;
-    payments: number;
-  }>;
-}
-
-export interface LifetimeValueData {
-  top: number;
-  ltv: Array<{
-    userId: string;
-    total_spend: number;
-    payments: number;
-  }>;
-}
-
-export interface RevenuePerUserData {
-  period_days: number;
-  top: number;
-  revenue_per_user: Array<{
-    userId: string;
-    revenue: number;
-    payments: number;
-  }>;
-}
-
-export interface PaymentSuccessData {
-  period_days: number;
-  approved: number;
-  rejected: number;
-  success_rate_percent: number;
-}
-
-export interface AnticipationData {
-  period_days: number;
-  avg_anticipation_days: number;
-}
-
-export interface BookingHoursData {
-  period_days: number;
-  histogram: Array<{
-    hour_utc: number;
-    count: number;
-  }>;
-}
-
-export interface UserOriginsData {
-  period_days: number;
-  top: number;
-  user_origins: Array<{
-    country: string;
-    users: number;
-  }>;
-}
-
-export interface PopularAirlinesData {
-  period_days: number;
-  top: number;
-  popular_airlines: Array<{
-    airlineCode: string;
-    count: number;
-    avg_price: number;
-  }>;
-}
-
-export interface CancellationRateData {
-  period_days: number;
-  created: number;
-  canceled: number;
-  cancellation_rate_percent: number;
-}
-
-export interface TimeToCompleteData {
-  period_days: number;
-  avg_minutes: {
-    search_to_reserve: number;
-    reserve_to_pay: number;
-    search_to_pay: number;
-  };
-}
+// Re-export with consistent naming
+export type { FunnelData };
+export type AverageFareData = AverageFare;
+export type MonthlyRevenueData = MonthlyRevenue;
+export type LifetimeValueData = LifetimeValue;
+export type RevenuePerUserData = RevenuePerUser;
+export type PaymentSuccessData = PaymentSuccess;
+export type AnticipationData = Anticipation;
+export type BookingHoursData = BookingHours;
+export type UserOriginsData = UserOrigins;
+export type PopularAirlinesData = PopularAirlines;
+export type CancellationRateData = CancellationRate;
+export type TimeToCompleteData = TimeToComplete;
+export type { SummaryData };
+export type { RecentActivity };
+export type { SearchMetrics };
+export type { CatalogAirlineSummary };
+export type { SearchCartSummary };
+export type { FlightsAircraft };
 
 // Component Props Types
 export interface ComponentProps {
@@ -137,6 +78,7 @@ export interface TransformedMetricData extends MetricData {}
 export interface TransformedChartData extends ChartDataPoint {}
 
 export interface TransformedTableData extends TableData {}
+
 
 // TanStack Query types are imported at the top
 
