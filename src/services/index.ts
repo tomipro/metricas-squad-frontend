@@ -1,6 +1,5 @@
 export { analyticsApi, ingestApi, apiRequest } from './axiosConfig';
 export * from './analyticsService';
-export * from './ingestService';
 export * from './authService';
 
 export type {
@@ -17,16 +16,13 @@ export type {
   CancellationRate,
   Anticipation,
   TimeToComplete,
+  SummaryData,
+  RecentActivity,
+  SearchMetrics,
+  CatalogAirlineSummary,
+  SearchCartSummary,
+  FlightsAircraft,
 } from './analyticsService';
-
-export type {
-  SearchEvent,
-  ReservationEvent,
-  PaymentEvent,
-  CancellationEvent,
-  IngestEvent,
-  IngestResponse,
-} from './ingestService';
 
 export type {
   LoginRequest,

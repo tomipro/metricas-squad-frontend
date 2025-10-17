@@ -13,6 +13,12 @@ import {
   getCancellationRate,
   getAnticipation,
   getTimeToComplete,
+  getSummary,
+  getRecentActivity,
+  getSearchMetrics,
+  getCatalogAirlineSummary,
+  getSearchCartSummary,
+  getFlightsAircraft,
 } from '../services/analyticsService';
 import {
   FunnelData,
@@ -27,6 +33,12 @@ import {
   CancellationRateData,
   AnticipationData,
   TimeToCompleteData,
+  SummaryData,
+  RecentActivity,
+  SearchMetrics,
+  CatalogAirlineSummary,
+  SearchCartSummary,
+  FlightsAircraft,
   OperationsHookReturn,
   AnalyticsHookReturn,
 } from '../types/dashboard';
@@ -50,6 +62,12 @@ export const analyticsKeys = {
   cancellationRate: (days: number) => [...analyticsKeys.all, 'cancellationRate', days] as const,
   anticipation: (days: number) => [...analyticsKeys.all, 'anticipation', days] as const,
   timeToComplete: (days: number) => [...analyticsKeys.all, 'timeToComplete', days] as const,
+  summary: () => [...analyticsKeys.all, 'summary'] as const,
+  recentActivity: (limit: number, hours: number) => [...analyticsKeys.all, 'recentActivity', limit, hours] as const,
+  searchMetrics: (days: number, top: number) => [...analyticsKeys.all, 'searchMetrics', days, top] as const,
+  catalogAirlineSummary: (days: number, currency: string) => [...analyticsKeys.all, 'catalogAirlineSummary', days, currency] as const,
+  searchCartSummary: (days: number, top: number) => [...analyticsKeys.all, 'searchCartSummary', days, top] as const,
+  flightsAircraft: (days: number) => [...analyticsKeys.all, 'flightsAircraft', days] as const,
 };
 
 // =============================================================================
@@ -170,6 +188,66 @@ export const useTimeToComplete = (days: number = 7): UseQueryResult<TimeToComple
   return useQuery({
     queryKey: analyticsKeys.timeToComplete(days),
     queryFn: () => getTimeToComplete(days),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// =============================================================================
+// NEW ANALYTICS HOOKS
+// =============================================================================
+
+// Summary
+export const useSummary = (): UseQueryResult<SummaryData> => {
+  return useQuery({
+    queryKey: analyticsKeys.summary(),
+    queryFn: getSummary,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+};
+
+// Recent Activity
+export const useRecentActivity = (limit: number = 10, hours: number = 24): UseQueryResult<RecentActivity> => {
+  return useQuery({
+    queryKey: analyticsKeys.recentActivity(limit, hours),
+    queryFn: () => getRecentActivity(limit, hours),
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 2 * 60 * 1000, // Refetch every 2 minutes
+  });
+};
+
+// Search Metrics
+export const useSearchMetrics = (days: number = 14, top: number = 10): UseQueryResult<SearchMetrics> => {
+  return useQuery({
+    queryKey: analyticsKeys.searchMetrics(days, top),
+    queryFn: () => getSearchMetrics(days, top),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Catalog Airline Summary
+export const useCatalogAirlineSummary = (days: number = 30, currency: string = 'USD'): UseQueryResult<CatalogAirlineSummary> => {
+  return useQuery({
+    queryKey: analyticsKeys.catalogAirlineSummary(days, currency),
+    queryFn: () => getCatalogAirlineSummary(days, currency),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Search Cart Summary
+export const useSearchCartSummary = (days: number = 7, top: number = 10): UseQueryResult<SearchCartSummary> => {
+  return useQuery({
+    queryKey: analyticsKeys.searchCartSummary(days, top),
+    queryFn: () => getSearchCartSummary(days, top),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+// Flights Aircraft
+export const useFlightsAircraft = (days: number = 30): UseQueryResult<FlightsAircraft> => {
+  return useQuery({
+    queryKey: analyticsKeys.flightsAircraft(days),
+    queryFn: () => getFlightsAircraft(days),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

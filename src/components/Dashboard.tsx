@@ -4,6 +4,8 @@ import ExecutiveSummary from './ExecutiveSummary';
 import Operations from './Operations';
 import Analytics from './Analytics';
 import FleetManagement from './FleetManagement';
+import { Summary } from './Summary';
+import { SearchAnalytics } from './SearchAnalytics';
 import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
@@ -22,6 +24,10 @@ const Dashboard: React.FC = () => {
         return <Analytics selectedPeriod={selectedPeriod} />;
       case 'fleet':
         return <FleetManagement selectedPeriod={selectedPeriod} />;
+      case 'summary':
+        return <Summary selectedPeriod={selectedPeriod} />;
+      case 'search':
+        return <SearchAnalytics selectedPeriod={selectedPeriod} />;
       default:
         return <ExecutiveSummary selectedPeriod={selectedPeriod} />;
     }

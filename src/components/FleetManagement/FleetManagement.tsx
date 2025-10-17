@@ -1,7 +1,7 @@
 import React from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { usePopularAirlines } from '../../hooks/useAnalytics';
+import { usePopularAirlines, useCatalogAirlineSummary, useFlightsAircraft } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   MetricData, 
@@ -22,30 +22,33 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   const days = getDaysFromPeriod(selectedPeriod);
   
   // Use TanStack Query hooks for real-time data
-  const { data: popularAirlinesData, isLoading: apiLoading, isError: apiError } = usePopularAirlines(days, 5);
+  const { data: popularAirlinesData, isLoading: popularAirlinesLoading, isError: popularAirlinesError } = usePopularAirlines(days, 5);
+  const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
+  const { data: flightsAircraftData, isLoading: aircraftLoading, isError: aircraftError } = useFlightsAircraft(days);
+  
+  const isLoading = popularAirlinesLoading || catalogLoading || aircraftLoading;
+  const isError = popularAirlinesError || catalogError || aircraftError;
 
   // Create fleet metrics from API data with proper typing
   const fleetMetrics: MetricData[] = [
     {
       title: "Total de Aerolíneas",
-      value: popularAirlinesData?.popular_airlines?.length?.toString() || "0",
+      value: catalogAirlineData?.airlines?.length?.toString() || "0",
       change: 0
     },
     {
-      title: "Total de Reservas",
-      value: popularAirlinesData?.popular_airlines?.reduce((sum: number, airline: { count: number }) => sum + airline.count, 0)?.toLocaleString() || "0",
+      title: "Total de Vuelos",
+      value: catalogAirlineData?.airlines?.reduce((sum: number, airline: { total_flights: number }) => sum + airline.total_flights, 0)?.toLocaleString() || "0",
       change: 0
     },
     {
-      title: "Precio Promedio",
-      value: `$${popularAirlinesData?.popular_airlines?.length ? 
-        (popularAirlinesData.popular_airlines.reduce((sum: number, airline: { avg_price: number }) => sum + airline.avg_price, 0) / popularAirlinesData.popular_airlines.length).toFixed(0) : 
-        "0"}`,
+      title: "Ingresos Totales",
+      value: `${catalogAirlineData?.currency || 'USD'} ${catalogAirlineData?.airlines?.reduce((sum: number, airline: { total_revenue: number }) => sum + airline.total_revenue, 0)?.toLocaleString() || "0"}`,
       change: 0
     },
     {
       title: "Aerolínea Principal",
-      value: popularAirlinesData?.popular_airlines?.[0]?.airlineCode || "N/A",
+      value: catalogAirlineData?.airlines?.[0]?.airline_name || "N/A",
       change: 0
     }
   ];
@@ -74,8 +77,31 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
     { key: 'revenue', title: 'Ingresos', render: (value: number) => `$${value.toLocaleString()}` }
   ];
 
+  // Create aircraft data from API
+  const aircraftData: TableData[] = flightsAircraftData?.aircraft?.map((aircraft: any) => ({
+    airline_brand: aircraft.airlineBrand,
+    aircraft_id: aircraft.aircraftId,
+    capacity: aircraft.capacity,
+    updates: aircraft.updates
+  })) || [];
+
+  // Create columns for aircraft table
+  const aircraftColumns: TableColumn[] = [
+    { key: 'airline_brand', title: 'Aerolínea' },
+    { key: 'aircraft_id', title: 'Modelo de Aeronave' },
+    { key: 'capacity', title: 'Capacidad', render: (value: number) => value.toLocaleString() },
+    { key: 'updates', title: 'Actualizaciones', render: (value: number) => value.toLocaleString() }
+  ];
+
+  // Create aircraft chart data by airline
+  const aircraftChartData: ChartDataPoint[] = flightsAircraftData?.aircraft?.slice(0, 10).map((aircraft: any) => ({
+    name: `${aircraft.airlineBrand} - ${aircraft.aircraftId}`,
+    value: aircraft.capacity,
+    updates: aircraft.updates
+  })) || [];
+
   // Show loading state with skeleton
-  if (apiLoading) {
+  if (isLoading) {
     return (
       <div className="tab-content">
         {/* Fleet Performance Metrics Skeleton */}
@@ -114,7 +140,7 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   }
 
   // Show error state
-  if (apiError) {
+  if (isError) {
     return (
       <div className="tab-content">
         <div className="error-container">
@@ -174,6 +200,33 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
             height={300}
             valueKey="avgPrice"
             color="#10B981"
+          />
+        </div>
+      </section>
+
+      {/* Aircraft Capacity Chart */}
+      <section className="metrics-section">
+        <h2 className="section-title">Capacidad por Aeronave</h2>
+        <div className="grid grid-cols-1">
+          <ChartCard 
+            title="Capacidad de Aeronaves por Aerolínea"
+            data={aircraftChartData}
+            type="bar"
+            height={400}
+            valueKey="value"
+          />
+        </div>
+      </section>
+
+      {/* Aircraft Details */}
+      <section className="metrics-section">
+        <h2 className="section-title">Detalles de Aeronaves</h2>
+        <div className="grid grid-cols-1">
+          <DataTable 
+            title="Información de Aeronaves por Aerolínea"
+            data={aircraftData}
+            columns={aircraftColumns}
+            maxRows={15}
           />
         </div>
       </section>
