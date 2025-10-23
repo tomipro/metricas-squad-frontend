@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './Login.css';
 
@@ -9,6 +10,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, onForgotPassword }) => {
   const { login, isLoading, error, clearError } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -59,7 +61,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onForgotPassword }) => {
 
     try {
       await login(formData);
+      // Call optional callback
       onLoginSuccess?.();
+      // Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
     }

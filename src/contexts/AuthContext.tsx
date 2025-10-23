@@ -7,6 +7,8 @@ interface User {
   email: string;
   name: string;
   role: string;
+  nacionalidad?: string;
+  email_verified?: boolean;
 }
 
 interface AuthContextType {
@@ -62,7 +64,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       
       const response: LoginResponse = await login(credentials);
-      setUser(response.user);
+      
+      // Transform API response to internal User format
+      if (response.success && response.data) {
+        const userData: User = {
+          id: response.data.user.id,
+          email: response.data.user.email,
+          name: response.data.user.nombre_completo,
+          role: response.data.user.rol,
+          nacionalidad: response.data.user.nacionalidad,
+          email_verified: response.data.user.email_verified,
+        };
+        setUser(userData);
+      } else {
+        throw new Error(response.message || 'Error de autenticación');
+      }
     } catch (err: any) {
       const authError = err as AuthError;
       setError(authError.message || 'Error de autenticación');
