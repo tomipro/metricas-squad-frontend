@@ -41,7 +41,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/funnel',
+          url: '/analytics/funnel',
           params: { days: 30 },
         })
       );
@@ -79,7 +79,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/avg-fare',
+          url: '/analytics/avg-fare',
           params: { days: 30 },
         })
       );
@@ -117,7 +117,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/revenue-monthly',
+          url: '/analytics/revenue-monthly',
           params: { months: 6 },
         })
       );
@@ -155,7 +155,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/ltv',
+          url: '/analytics/ltv',
           params: { top: 10 },
         })
       );
@@ -193,7 +193,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/revenue-per-user',
+          url: '/analytics/revenue-per-user',
           params: { days: 30, top: 10 },
         })
       );
@@ -231,7 +231,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/payment-success',
+          url: '/analytics/payment-success',
           params: { days: 30 },
         })
       );
@@ -269,7 +269,7 @@ describe('Analytics Service - Executive Summary Functions', () => {
         expect.anything(),
         expect.objectContaining({
           method: 'GET',
-          url: '/anticipation',
+          url: '/analytics/anticipation',
           params: { days: 90 },
         })
       );

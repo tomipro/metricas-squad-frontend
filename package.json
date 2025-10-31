@@ -30,6 +30,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false --coverageReporters=lcov --coverageReporters=text",
     "test:executive": "react-scripts test --testPathPattern=ExecutiveSummary --coverage",
     "test:operations": "react-scripts test --testPathPattern=Operations --coverage",
     "test:both": "react-scripts test --testPathPattern='(ExecutiveSummary|Operations)' --coverage",

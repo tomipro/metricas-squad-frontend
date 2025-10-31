@@ -103,10 +103,6 @@ describe('Operations Component', () => {
       
       expect(screen.getByText('Tasa de Éxito de Pago')).toBeInTheDocument();
       expect(screen.getByText('91.4')).toBeInTheDocument();
-      
-      expect(screen.getByText('Tiempo de Reserva')).toBeInTheDocument();
-      expect(screen.getByText('8.5')).toBeInTheDocument();
-      expect(screen.getAllByText('min')).toHaveLength(3);
     });
 
     it('should render flight metrics correctly', () => {
@@ -120,12 +116,6 @@ describe('Operations Component', () => {
       // Check flight metrics
       expect(screen.getByText('Tasa de Cancelación')).toBeInTheDocument();
       expect(screen.getByText('12.5')).toBeInTheDocument();
-      
-      expect(screen.getByText('Tiempo de Pago a Reserva')).toBeInTheDocument();
-      expect(screen.getByText('3.2')).toBeInTheDocument();
-      
-      expect(screen.getByText('Tiempo Total de Reserva')).toBeInTheDocument();
-      expect(screen.getByText('11.7')).toBeInTheDocument();
     });
 
     it('should render charts correctly', () => {
@@ -154,7 +144,7 @@ describe('Operations Component', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(6);
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(3);
       expect(screen.getAllByTestId('chart-card')).toHaveLength(2);
     });
   });
@@ -194,11 +184,8 @@ describe('Operations Component', () => {
 
       // Should render with default values
       expect(screen.getByText('Búsqueda → Reserva')).toBeInTheDocument();
-      expect(screen.getAllByText('0.0')).toHaveLength(6);
+      expect(screen.getAllByText('0.0')).toHaveLength(3);
       expect(screen.getAllByText('%')).toHaveLength(3);
-      
-      expect(screen.getByText('Tiempo de Reserva')).toBeInTheDocument();
-      expect(screen.getAllByText('min')).toHaveLength(3);
     });
   });
 
@@ -250,7 +237,7 @@ describe('Operations Component', () => {
       expect(screen.getByText('30.0')).toBeInTheDocument();
     });
 
-    it('should correctly transform time data', () => {
+    it('should correctly transform cancellation rate', () => {
       mockedUseOperations.mockReturnValue(mockUseOperationsSuccess());
 
       render(
@@ -258,10 +245,8 @@ describe('Operations Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Check that time values are properly formatted
-      expect(screen.getByText('8.5')).toBeInTheDocument();
-      expect(screen.getByText('3.2')).toBeInTheDocument();
-      expect(screen.getByText('11.7')).toBeInTheDocument();
+      // Check that cancellation rate is properly formatted
+      expect(screen.getByText('12.5')).toBeInTheDocument();
     });
 
     it('should correctly transform percentage data', () => {
@@ -302,10 +287,10 @@ describe('Operations Component', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(6);
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(3);
       expect(screen.getAllByTestId('chart-card')).toHaveLength(2);
-      expect(screen.getAllByTestId('metric-title')).toHaveLength(6);
-      expect(screen.getAllByTestId('metric-value')).toHaveLength(6);
+      expect(screen.getAllByTestId('metric-title')).toHaveLength(3);
+      expect(screen.getAllByTestId('metric-value')).toHaveLength(3);
     });
   });
 
