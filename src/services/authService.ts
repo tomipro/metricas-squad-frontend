@@ -6,17 +6,27 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
+  success: boolean;
   message: string;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      rol: string;
+      nombre_completo: string;
+      nacionalidad: string;
+      email_verified: boolean;
+      created_at: string;
+      updated_at: string;
+    };
+    token: string;
+    tokenType: string;
+    expiresIn: string;
+  };
 }
 
 export interface AuthError {
+  success: boolean;
   message: string;
   status: number;
 }
@@ -48,27 +58,33 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
   try {
     const response = await authApi.post<LoginResponse>('/login', credentials);
     
-    if (response.data.token) {
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('user_data', JSON.stringify(response.data.user));
+    // Check if login was successful
+    if (response.data.success && response.data.data?.token) {
+      localStorage.setItem('auth_token', response.data.data.token);
+      localStorage.setItem('user_data', JSON.stringify(response.data.data.user));
     }
     
     return response.data;
   } catch (error: any) {
     if (error.response) {
+      // Handle error response from API
+      const errorData = error.response.data;
       const authError: AuthError = {
-        message: error.response.data?.message || 'Error de autenticación',
+        success: errorData?.success || false,
+        message: errorData?.message || 'Error de autenticación',
         status: error.response.status,
       };
       throw authError;
     } else if (error.request) {
       const authError: AuthError = {
+        success: false,
         message: 'Error de conexión. Verifica tu conexión a internet.',
         status: 0,
       };
       throw authError;
     } else {
       const authError: AuthError = {
+        success: false,
         message: 'Error inesperado. Intenta nuevamente.',
         status: 0,
       };
@@ -96,7 +112,28 @@ export const getToken = (): string | null => {
 
 export const getUserData = (): any | null => {
   const userData = localStorage.getItem('user_data');
-  return userData ? JSON.parse(userData) : null;
+  if (!userData) return null;
+  
+  try {
+    const parsedData = JSON.parse(userData);
+    // Transform API format to application format if needed
+    // Check if data is in new API format (has 'rol' and 'nombre_completo')
+    if (parsedData.rol && parsedData.nombre_completo) {
+      return {
+        id: parsedData.id,
+        email: parsedData.email,
+        name: parsedData.nombre_completo,
+        role: parsedData.rol,
+        nacionalidad: parsedData.nacionalidad,
+        email_verified: parsedData.email_verified,
+      };
+    }
+    // Already in application format
+    return parsedData;
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    return null;
+  }
 };
 
 export const isAuthenticated = (): boolean => {
@@ -164,18 +201,21 @@ export const forgotPassword = async (email: string): Promise<ForgotPasswordRespo
   } catch (error: any) {
     if (error.response) {
       const authError: AuthError = {
+        success: false,
         message: error.response.data?.message || 'Error al enviar el email de recuperación',
         status: error.response.status,
       };
       throw authError;
     } else if (error.request) {
       const authError: AuthError = {
+        success: false,
         message: 'Error de conexión. Verifica tu conexión a internet.',
         status: 0,
       };
       throw authError;
     } else {
       const authError: AuthError = {
+        success: false,
         message: 'Error inesperado. Intenta nuevamente.',
         status: 0,
       };

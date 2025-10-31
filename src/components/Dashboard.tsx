@@ -45,14 +45,12 @@ const Dashboard: React.FC = () => {
             <div className="header-user">
               <div className="user-info">
                 <span className="user-name">{user?.name || 'Usuario'}</span>
-                <span className="user-role">{user?.role || 'Admin'}</span>
               </div>
               <button 
                 className="logout-button"
                 onClick={logout}
                 title="Cerrar sesión"
               >
-                <span className="logout-icon">🚪</span>
                 Salir
               </button>
             </div>

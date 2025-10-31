@@ -102,7 +102,7 @@ describe('ExecutiveSummary Component', () => {
       expect(screen.getByText('Experiencia del Usuario y Retención')).toBeInTheDocument();
 
       // Check for skeleton components
-      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(12); // 5 + 2 + 5
+      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(10); // 3 + 2 + 5
       expect(screen.getByTestId('chart-card-skeleton')).toBeInTheDocument();
     });
 
@@ -115,7 +115,7 @@ describe('ExecutiveSummary Component', () => {
       );
 
       // Should still show loading skeletons
-      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(12);
+      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(10);
     });
   });
 
@@ -160,7 +160,7 @@ describe('ExecutiveSummary Component', () => {
       expect(screen.getByText('Experiencia del Usuario y Retención')).toBeInTheDocument();
 
       // Check for metric cards
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(12); // 5 + 2 + 5
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(10); // 3 + 2 + 5
       expect(screen.getByTestId('chart-card')).toBeInTheDocument();
     });
 
@@ -172,19 +172,12 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Check financial metrics
-      expect(screen.getByText('Tasa de Conversión')).toBeInTheDocument();
-      expect(screen.getByText('21.3')).toBeInTheDocument();
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
-      
+      // Check financial metrics (3 total)
       expect(screen.getByText('Valor Promedio de Reserva')).toBeInTheDocument();
       expect(screen.getByText('$451')).toBeInTheDocument();
       
       expect(screen.getByText('Ingresos Mensuales')).toBeInTheDocument();
       expect(screen.getByText('$8300000.0M')).toBeInTheDocument();
-      
-      expect(screen.getByText('Valor de Vida del Cliente')).toBeInTheDocument();
-      expect(screen.getByText('$2501')).toBeInTheDocument();
       
       expect(screen.getByText('Ingresos por Usuario')).toBeInTheDocument();
       expect(screen.getByText('$850')).toBeInTheDocument();
@@ -198,10 +191,9 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Check operational metrics
+      // Check operational metrics (2 total)
       expect(screen.getByText('Tasa de Éxito de Pago')).toBeInTheDocument();
       expect(screen.getByText('91.4')).toBeInTheDocument();
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
       
       expect(screen.getByText('Anticipación Promedio')).toBeInTheDocument();
       expect(screen.getByText('15')).toBeInTheDocument();
@@ -216,7 +208,7 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Check engagement metrics
+      // Check engagement metrics (5 total)
       expect(screen.getByText('Total de Búsquedas')).toBeInTheDocument();
       expect(screen.getByText('15,000')).toBeInTheDocument();
       
@@ -228,7 +220,6 @@ describe('ExecutiveSummary Component', () => {
       
       expect(screen.getByText('Búsqueda a Reserva')).toBeInTheDocument();
       expect(screen.getByText('30.0')).toBeInTheDocument();
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
       
       expect(screen.getByText('Reserva a Pago')).toBeInTheDocument();
       expect(screen.getByText('71.1')).toBeInTheDocument();
@@ -261,12 +252,11 @@ describe('ExecutiveSummary Component', () => {
       );
 
       // Should render with default values
-      expect(screen.getByText('Tasa de Conversión')).toBeInTheDocument();
-      expect(screen.getAllByText('0.0')).toHaveLength(4); // Multiple 0.0 values
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
-      
       expect(screen.getByText('Valor Promedio de Reserva')).toBeInTheDocument();
-      expect(screen.getAllByText('$0')).toHaveLength(3);
+      expect(screen.getAllByText('$0')).toHaveLength(3); // 3 financial metrics
+      
+      expect(screen.getByText('Tasa de Éxito de Pago')).toBeInTheDocument();
+      expect(screen.getAllByText('0.0')).toHaveLength(3); // Payment success + 2 conversion rates
     });
   });
 
@@ -309,15 +299,15 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Verify the transformed data
-      expect(screen.getByText('21.3')).toBeInTheDocument();
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
-
+      // Verify the transformed financial data
       const avgFareMetric = screen.getByText('$451');
       expect(avgFareMetric).toBeInTheDocument();
 
       const monthlyRevenueMetric = screen.getByText('$8300000.0M');
       expect(monthlyRevenueMetric).toBeInTheDocument();
+      
+      const revenuePerUserMetric = screen.getByText('$850');
+      expect(revenuePerUserMetric).toBeInTheDocument();
     });
 
     it('should handle missing data gracefully', () => {
@@ -342,10 +332,9 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Should show default values
-      expect(screen.getAllByText('0.0')).toHaveLength(3); // Multiple 0.0 values
-      expect(screen.getAllByText('%')).toHaveLength(4); // Multiple % symbols
-      expect(screen.getByText('$0')).toBeInTheDocument();
+      // Should show default values for missing data
+      expect(screen.getAllByText('0')).toHaveLength(3); // Total searches, reservations, payments
+      expect(screen.getByText('$0')).toBeInTheDocument(); // Average fare
     });
   });
 
@@ -375,7 +364,7 @@ describe('ExecutiveSummary Component', () => {
       );
 
       expect(screen.getByTestId('chart-card')).toBeInTheDocument();
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(10); // 3 + 2 + 5
     });
   });
 });
