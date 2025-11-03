@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { TabNavigation, TabKey } from './Common';
+import UserMenu from './Common/UserMenu';
 import ExecutiveSummary from './ExecutiveSummary';
 import Operations from './Operations';
 import Analytics from './Analytics';
 import FleetManagement from './FleetManagement';
 import { Summary } from './Summary';
 import { SearchAnalytics } from './SearchAnalytics';
-import { useAuth } from '../contexts/AuthContext';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('executive');
-  const [selectedPeriod, setSelectedPeriod] = useState('30');
-  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabKey>('summary');
+  const [selectedPeriod, setSelectedPeriod] = useState('365');
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -29,7 +28,7 @@ const Dashboard: React.FC = () => {
       case 'search':
         return <SearchAnalytics selectedPeriod={selectedPeriod} />;
       default:
-        return <ExecutiveSummary selectedPeriod={selectedPeriod} />;
+        return <Summary selectedPeriod={selectedPeriod} />;
     }
   };
 
@@ -43,16 +42,7 @@ const Dashboard: React.FC = () => {
               <p className="dashboard-subtitle">Reservas de Vuelos - Análisis Integral</p>
             </div>
             <div className="header-user">
-              <div className="user-info">
-                <span className="user-name">{user?.name || 'Usuario'}</span>
-              </div>
-              <button 
-                className="logout-button"
-                onClick={logout}
-                title="Cerrar sesión"
-              >
-                Salir
-              </button>
+              <UserMenu />
             </div>
           </div>
         </div>

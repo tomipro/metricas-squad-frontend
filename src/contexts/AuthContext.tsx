@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { login, logout, getUserData, isAuthenticated, LoginRequest, LoginResponse, AuthError } from '../services/authService';
 import { useTokenValidation } from '../hooks/useTokenValidation';
 
@@ -94,9 +94,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   };
 
-  const clearError = (): void => {
+  const clearError = useCallback((): void => {
     setError(null);
-  };
+  }, []);
 
   const value: AuthContextType = {
     user,

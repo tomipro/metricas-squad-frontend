@@ -5,10 +5,9 @@ import './Login.css';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
-  onForgotPassword?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onForgotPassword }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const { login, isLoading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -129,16 +128,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onForgotPassword }) => {
               {validationErrors.password && (
                 <span className="validation-error">{validationErrors.password}</span>
               )}
-            </div>
-
-            <div className="form-options">
-              <button 
-                type="button" 
-                className="forgot-password"
-                onClick={onForgotPassword}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
             </div>
 
             <button

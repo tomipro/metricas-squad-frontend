@@ -155,15 +155,19 @@ export interface RecentActivity {
 export interface SearchMetrics {
   period_days: number;
   top: number;
-  search_metrics: Array<{
-    search_id: string;
-    user_id: string;
+  routes: Array<{
     origin: string;
     destination: string;
-    search_count: number;
-    results_count: number;
-    conversion_rate: number;
+    flightsFrom: string;
+    flightsTo: string;
+    searches: number;
+    avg_results: number | null;
+    max_results: number | null;
+    min_results: number | null;
+    avg_trip_length_days: number | null;
   }>;
+  total_routes: number;
+  total_searches: number;
 }
 
 export interface CatalogAirlineSummary {
@@ -182,13 +186,11 @@ export interface CatalogAirlineSummary {
 export interface SearchCartSummary {
   period_days: number;
   top: number;
-  cart_summary: Array<{
-    user_id: string;
-    cart_items: number;
-    total_value: number;
-    currency: string;
-    conversion_rate: number;
-    avg_time_in_cart: number;
+  total_additions: number;
+  cart_items: Array<{
+    flightId: string | number;
+    additions: number;
+    last_added_at: string;
   }>;
 }
 

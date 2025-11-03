@@ -18,11 +18,11 @@ export interface ChartDataPoint {
 export interface TableColumn {
   key: string;
   title: string;
-  render?: (value: any) => React.ReactNode;
+  render?: (value: any, row?: TableData) => React.ReactNode;
 }
 
 export interface TableData {
-  [key: string]: string | number;
+  [key: string]: string | number | boolean;
 }
 
 // Import API Response Types from analyticsService to avoid duplication

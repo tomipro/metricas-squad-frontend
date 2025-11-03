@@ -3,7 +3,7 @@ import './SkeletonStyles.css';
 
 interface ChartCardSkeletonProps {
   height?: number;
-  type?: 'bar' | 'line' | 'pie' | 'area';
+  type?: 'bar' | 'line' | 'pie' | 'area' | 'funnel' | 'barHorizontal';
 }
 
 const ChartCardSkeleton: React.FC<ChartCardSkeletonProps> = ({ height = 300, type = 'bar' }) => {
@@ -15,6 +15,10 @@ const ChartCardSkeleton: React.FC<ChartCardSkeletonProps> = ({ height = 300, typ
         return 'chart-skeleton-line';
       case 'area':
         return 'chart-skeleton-area';
+      case 'funnel':
+        return 'chart-skeleton-funnel';
+      case 'barHorizontal':
+        return 'chart-skeleton-bar-horizontal';
       default:
         return 'chart-skeleton-bar';
     }

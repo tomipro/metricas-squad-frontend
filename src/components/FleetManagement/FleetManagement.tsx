@@ -128,11 +128,11 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
           </div>
         </section>
 
-        {/* Average Price Analysis Skeleton */}
+        {/* Aircraft Capacity Chart Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Análisis de Precios Promedio</h2>
+          <h2 className="section-title">Capacidad por Aeronave</h2>
           <div className="grid grid-cols-1">
-            <ChartCardSkeleton height={300} type="bar" />
+            <ChartCardSkeleton height={400} type="barHorizontal" />
           </div>
         </section>
       </div>
@@ -211,9 +211,11 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
           <ChartCard 
             title="Capacidad de Aeronaves por Aerolínea"
             data={aircraftChartData}
-            type="bar"
-            height={400}
+            type="barHorizontal"
+            height={Math.max(400, Math.min(600, aircraftChartData.length * 50))}
             valueKey="value"
+            nameKey="name"
+            color="#507BD8"
           />
         </div>
       </section>
