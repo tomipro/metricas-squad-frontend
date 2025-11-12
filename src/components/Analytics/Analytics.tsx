@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChartCard, DataTable } from '../Common';
 import { ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { useAnalytics } from '../../hooks/useAnalytics';
+import { useAnalytics, useCatalogAirlineSummary } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   ChartDataPoint,
-  TableColumn
+  TableColumn,
+  TableData
 } from '../../types/dashboard';
 import '../../components/LoadingStates.css';
 
@@ -29,6 +30,38 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     isError: apiError
   } = useAnalytics(days);
 
+  // Get airline data from API
+  const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
+  
+  const isLoading = apiLoading || catalogLoading;
+  const isError = apiError || catalogError;
+
+  // Create airline occupancy data from API - using market_share as occupancy percentage
+  const allAirlineOccupancyData: ChartDataPoint[] = useMemo(() => {
+    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
+      return [];
+    }
+    return catalogAirlineData.airlines.map((airline: { airline_code: string; airline_name: string; market_share: number }) => ({
+      name: `${airline.airline_name} (${airline.airline_code})`,
+      value: airline.market_share * 100, // Convert to percentage
+      percentage: airline.market_share * 100,
+      airlineCode: airline.airline_code,
+      airlineName: airline.airline_name
+    }));
+  }, [catalogAirlineData]);
+
+  // Initialize selected airlines with all airlines on first render
+  const [selectedAirlines, setSelectedAirlines] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  // Update selected airlines when data is loaded
+  useEffect(() => {
+    if (allAirlineOccupancyData.length > 0 && selectedAirlines.size === 0) {
+      setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
+    }
+  }, [allAirlineOccupancyData, selectedAirlines.size]);
+
   // Create booking hours data from API with proper typing
   const bookingHoursData: ChartDataPoint[] = bookingHours?.data?.histogram?.map((item: { hour_utc: number; count: number }) => ({
     name: `${item.hour_utc}:00`,
@@ -37,13 +70,68 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     count: item.count
   })) || [];
 
-  // Create user origins data from API with proper typing
-  const userOriginsData: ChartDataPoint[] = userOrigins?.data?.user_origins?.map((origin: { country: string; users: number }) => ({
-    name: origin.country,
-    value: origin.users,
-    country: origin.country,
-    users: origin.users
-  })) || [];
+  // Helper function to group small countries into "Otros"
+  const groupSmallCountries = (data: Array<{ country: string; users: number }>, topN: number = 8): ChartDataPoint[] => {
+    if (!data || data.length === 0) return [];
+    
+    // Sort by users descending
+    const sorted = [...data].sort((a, b) => b.users - a.users);
+    
+    // Take top N countries
+    const topCountries = sorted.slice(0, topN);
+    const others = sorted.slice(topN);
+    
+    // Calculate total for "Otros"
+    const othersTotal = others.reduce((sum, item) => sum + item.users, 0);
+    
+    // Build result array
+    const result: ChartDataPoint[] = topCountries.map((origin) => ({
+      name: origin.country,
+      value: origin.users,
+      country: origin.country,
+      users: origin.users
+    }));
+    
+    // Add "Otros" if there are countries grouped
+    if (othersTotal > 0) {
+      result.push({
+        name: 'Otros',
+        value: othersTotal,
+        country: 'Otros',
+        users: othersTotal
+      });
+    }
+    
+    return result;
+  };
+
+  // Create user origins data from API with proper typing and grouping
+  const allUserOriginsData: ChartDataPoint[] = useMemo(() => {
+    return groupSmallCountries(
+      userOrigins?.data?.user_origins || [],
+      8
+    );
+  }, [userOrigins]);
+
+  // Initialize selected origins with all origins on first render
+  const [selectedOrigins, setSelectedOrigins] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  // Update selected origins when data is loaded
+  useEffect(() => {
+    if (allUserOriginsData.length > 0 && selectedOrigins.size === 0) {
+      setSelectedOrigins(new Set(allUserOriginsData.map(item => item.name)));
+    }
+  }, [allUserOriginsData, selectedOrigins.size]);
+
+  // Filter user origins data based on selection
+  const userOriginsData: ChartDataPoint[] = useMemo(() => {
+    if (selectedOrigins.size === 0) {
+      return [];
+    }
+    return allUserOriginsData.filter(item => selectedOrigins.has(item.name));
+  }, [selectedOrigins, allUserOriginsData]);
 
   // Create payment success data from API with proper typing
   const paymentSuccessData: ChartDataPoint[] = [
@@ -70,65 +158,128 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     }
   ];
 
-  // Mock data: Porcentaje de ocupación del avión por aerolínea
-  const airlineOccupancyData: ChartDataPoint[] = [
-    {
-      name: "Aerolíneas Argentinas (AR)",
-      value: 82.5,
-      percentage: 82.5
-    },
-    {
-      name: "LATAM (LA)",
-      value: 78.3,
-      percentage: 78.3
-    },
-    {
-      name: "Avianca (AV)",
-      value: 85.7,
-      percentage: 85.7
-    },
-    {
-      name: "Copa Airlines (CM)",
-      value: 73.2,
-      percentage: 73.2
-    },
-    {
-      name: "American Airlines (AA)",
-      value: 88.1,
-      percentage: 88.1
-    },
-    {
-      name: "United Airlines (UA)",
-      value: 76.9,
-      percentage: 76.9
+  // Filter data based on selected airlines
+  const airlineOccupancyData: ChartDataPoint[] = useMemo(() => {
+    if (selectedAirlines.size === 0) {
+      return [];
     }
-  ];
-  
-  // Create columns for user origins table with proper typing
-  const userOriginsColumns: TableColumn[] = [
+    return allAirlineOccupancyData.filter(item => selectedAirlines.has(item.name));
+  }, [selectedAirlines, allAirlineOccupancyData]);
+
+  // Create table data with selection state
+  const airlineOccupancyTableData: TableData[] = useMemo(() => {
+    return allAirlineOccupancyData.map(item => ({
+      name: item.name,
+      value: item.value,
+      selected: selectedAirlines.has(item.name)
+    }));
+  }, [selectedAirlines, allAirlineOccupancyData]);
+
+  // Toggle airline selection (memoized to prevent recreation)
+  const toggleAirline = useCallback((airlineName: string) => {
+    setSelectedAirlines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(airlineName)) {
+        newSet.delete(airlineName);
+      } else {
+        newSet.add(airlineName);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all airlines (memoized)
+  const selectAllAirlines = useCallback(() => {
+    setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
+  }, [allAirlineOccupancyData]);
+
+  // Deselect all airlines (memoized)
+  const deselectAllAirlines = useCallback(() => {
+    setSelectedAirlines(new Set());
+  }, []);
+
+  // Toggle origin selection (memoized to prevent recreation)
+  const toggleOrigin = useCallback((originName: string) => {
+    setSelectedOrigins(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(originName)) {
+        newSet.delete(originName);
+      } else {
+        newSet.add(originName);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all origins (memoized)
+  const selectAllOrigins = useCallback(() => {
+    setSelectedOrigins(new Set(allUserOriginsData.map(item => item.name)));
+  }, [allUserOriginsData]);
+
+  // Deselect all origins (memoized)
+  const deselectAllOrigins = useCallback(() => {
+    setSelectedOrigins(new Set());
+  }, []);
+
+  // Create table data with selection state for user origins
+  const userOriginsTableData: TableData[] = useMemo(() => {
+    return allUserOriginsData.map(item => ({
+      country: item.country || item.name,
+      users: item.users || item.value,
+      name: item.name,
+      selected: selectedOrigins.has(item.name)
+    }));
+  }, [selectedOrigins, allUserOriginsData]);
+
+  // Create columns for user origins table with proper typing (with checkbox)
+  const userOriginsColumns: TableColumn[] = useMemo(() => [
+    { 
+      key: 'selected', 
+      title: '', 
+      render: (value: boolean, row?: TableData) => (
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={() => toggleOrigin((row?.name as string) || '')}
+          style={{ cursor: 'pointer' }}
+        />
+      )
+    },
     { key: 'country', title: 'País' },
     { key: 'users', title: 'Usuarios', render: (value: number) => value.toLocaleString() }
-  ];
+  ], [toggleOrigin]);
 
-  // Create columns for airline occupancy table with proper typing
-  const airlineOccupancyColumns: TableColumn[] = [
+  // Create columns for airline occupancy table with proper typing (with checkbox) - memoized
+  const airlineOccupancyColumns: TableColumn[] = useMemo(() => [
+    { 
+      key: 'selected', 
+      title: '', 
+      render: (value: boolean, row?: TableData) => (
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={() => toggleAirline((row?.name as string) || '')}
+          style={{ cursor: 'pointer' }}
+        />
+      )
+    },
     { key: 'name', title: 'Aerolínea' },
     { key: 'value', title: 'Ocupación (%)', render: (value: number) => `${value.toFixed(1)}%` }
-  ];
+  ], [toggleAirline]);
 
   // Show loading state with skeleton
-  if (apiLoading) {
+  if (isLoading) {
     return (
       <div className="tab-content">
         {/* User Activity Analysis Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Análisis de Comportamiento del Usuario</h2>
+          <h2 className="section-title">Comportamiento del Usuario</h2>
           <ChartCardSkeleton height={300} type="bar" />
         </section>
 
         {/* Payment Success Analysis Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Análisis de Éxito de Pago</h2>
+          <h2 className="section-title">Éxito de Pago</h2>
           <div className="grid grid-cols-1">
             <ChartCardSkeleton height={300} type="pie" />
           </div>
@@ -136,16 +287,16 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
         {/* User Origins Analysis Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Análisis de Orígenes del Usuario</h2>
+          <h2 className="section-title">Orígenes del Usuario</h2>
           <div className="grid grid-cols-2">
-            <ChartCardSkeleton height={300} type="pie" />
-            <DataTableSkeleton rows={8} columns={2} />
+            <ChartCardSkeleton height={400} type="barHorizontal" />
+            <DataTableSkeleton rows={10} columns={3} />
           </div>
         </section>
 
         {/* Anticipation Analysis Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Análisis de Anticipación de Reserva</h2>
+          <h2 className="section-title">Anticipación de Reserva</h2>
           <div className="grid grid-cols-1">
             <ChartCardSkeleton height={300} type="bar" />
           </div>
@@ -156,7 +307,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
           <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
           <div className="grid grid-cols-2">
             <ChartCardSkeleton height={300} type="bar" />
-            <DataTableSkeleton rows={6} columns={2} />
+            <DataTableSkeleton rows={6} columns={3} />
           </div>
         </section>
       </div>
@@ -164,7 +315,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
   }
 
   // Show error state
-  if (apiError) {
+  if (isError) {
     return (
       <div className="tab-content">
         <div className="error-container">
@@ -178,7 +329,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     <div className="tab-content">
       {/* User Activity Analysis */}
       <section className="metrics-section">
-        <h2 className="section-title">Análisis de Comportamiento del Usuario</h2>
+        <h2 className="section-title">Comportamiento del Usuario</h2>
         <ChartCard 
           title="Actividad de Reserva por Hora (UTC)"
           data={bookingHoursData}
@@ -191,7 +342,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
       {/* Payment Success Analysis */}
       <section className="metrics-section">
-        <h2 className="section-title">Análisis de Éxito de Pago</h2>
+        <h2 className="section-title">Éxito de Pago</h2>
         <div className="grid grid-cols-1">
           <ChartCard 
             title="Tasa de Éxito de Pago"
@@ -205,27 +356,103 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
       {/* User Origins Analysis */}
       <section className="metrics-section">
-        <h2 className="section-title">Análisis de Orígenes del Usuario</h2>
+        <h2 className="section-title">Orígenes del Usuario</h2>
         <div className="grid grid-cols-2">
-          <ChartCard 
-            title="Orígenes del Usuario por País"
-            data={userOriginsData}
-            type="pie"
-            height={300}
-            valueKey="value"
-          />
+          {allUserOriginsData.length === 0 ? (
+            <ChartCard 
+              title="Orígenes del Usuario por País"
+              data={[]}
+              type="barHorizontal"
+              height={350}
+              valueKey="value"
+              nameKey="name"
+              color="#507BD8"
+            />
+          ) : userOriginsData.length > 0 ? (
+            <ChartCard 
+              title="Orígenes del Usuario por País"
+              data={userOriginsData}
+              type="barHorizontal"
+              height={Math.max(350, Math.min(600, userOriginsData.length * 45))}
+              valueKey="value"
+              nameKey="name"
+              color="#507BD8"
+            />
+          ) : (
+            <div className="chart-card card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '350px' }}>
+              <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>Selecciona países para mostrar en el gráfico</p>
+            </div>
+          )}
           <DataTable 
             title="Top Orígenes del Usuario"
-            data={userOriginsData}
+            data={userOriginsTableData}
             columns={userOriginsColumns}
-            maxRows={8}
+            maxRows={10}
           />
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={selectAllOrigins}
+            disabled={allUserOriginsData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allUserOriginsData.length === 0 ? '#D1D5DB' : '#507BD8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allUserOriginsData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allUserOriginsData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allUserOriginsData.length > 0) {
+                e.currentTarget.style.background = '#4169c4';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allUserOriginsData.length > 0) {
+                e.currentTarget.style.background = '#507BD8';
+              }
+            }}
+          >
+            Seleccionar Todos
+          </button>
+          <button
+            onClick={deselectAllOrigins}
+            disabled={allUserOriginsData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allUserOriginsData.length === 0 ? '#D1D5DB' : '#E5E7EB',
+              color: '#374151',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allUserOriginsData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allUserOriginsData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allUserOriginsData.length > 0) {
+                e.currentTarget.style.background = '#D1D5DB';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allUserOriginsData.length > 0) {
+                e.currentTarget.style.background = '#E5E7EB';
+              }
+            }}
+          >
+            Deseleccionar Todos
+          </button>
         </div>
       </section>
 
       {/* Anticipation Analysis */}
       <section className="metrics-section">
-        <h2 className="section-title">Análisis de Anticipación de Reserva</h2>
+        <h2 className="section-title">Anticipación de Reserva</h2>
         <div className="grid grid-cols-1">
           <ChartCard 
             title="Anticipación Promedio de Reserva (Días)"
@@ -242,20 +469,93 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
       <section className="metrics-section">
         <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
         <div className="grid grid-cols-2">
-          <ChartCard 
-            title="Ocupación de Aviones por Aerolínea (%)"
-            data={airlineOccupancyData}
-            type="bar"
-            height={300}
-            valueKey="value"
-            color="#8B5CF6"
-          />
+          {allAirlineOccupancyData.length === 0 ? (
+            <ChartCard 
+              title="Ocupación de Aviones por Aerolínea (%)"
+              data={[]}
+              type="bar"
+              height={300}
+              valueKey="value"
+              color="#8B5CF6"
+            />
+          ) : airlineOccupancyData.length > 0 ? (
+            <ChartCard 
+              title="Ocupación de Aviones por Aerolínea (%)"
+              data={airlineOccupancyData}
+              type="bar"
+              height={300}
+              valueKey="value"
+              color="#8B5CF6"
+            />
+          ) : (
+            <div className="chart-card card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+              <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>Selecciona aerolíneas para mostrar en el gráfico</p>
+            </div>
+          )}
           <DataTable 
             title="Detalle de Ocupación por Aerolínea"
-            data={airlineOccupancyData}
+            data={airlineOccupancyTableData}
             columns={airlineOccupancyColumns}
-            maxRows={6}
+            maxRows={10}
           />
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={selectAllAirlines}
+            disabled={allAirlineOccupancyData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#507BD8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#4169c4';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#507BD8';
+              }
+            }}
+          >
+            Seleccionar Todos
+          </button>
+          <button
+            onClick={deselectAllAirlines}
+            disabled={allAirlineOccupancyData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#E5E7EB',
+              color: '#374151',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#D1D5DB';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#E5E7EB';
+              }
+            }}
+          >
+            Deseleccionar Todos
+          </button>
         </div>
       </section>
     </div>

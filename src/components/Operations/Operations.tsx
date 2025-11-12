@@ -1,11 +1,10 @@
 import React from 'react';
-import { MetricCard, ChartCard } from '../Common';
-import { MetricCardSkeleton, ChartCardSkeleton } from '../Skeletons';
+import { MetricCard } from '../Common';
+import { MetricCardSkeleton } from '../Skeletons';
 import { useOperations } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
-  MetricData, 
-  ChartDataPoint
+  MetricData
 } from '../../types/dashboard';
 import '../../components/LoadingStates.css';
 
@@ -24,7 +23,6 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
     funnelData,
     paymentSuccess,
     cancellationRate,
-    popularAirlines,
     isLoading: apiLoading,
     isError: apiError
   } = useOperations(days);
@@ -54,20 +52,6 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
     }
   ];
 
-  // Create popular airlines data from API with proper typing
-  const popularAirlinesData: ChartDataPoint[] = popularAirlines?.data?.popular_airlines?.map((airline: { airlineCode: string; count: number; avg_price: number }) => ({
-    name: airline.airlineCode,
-    value: airline.count,
-    avgPrice: airline.avg_price,
-    count: airline.count
-  })) || [];
-
-  // Create cancellation data from API with proper typing
-  const cancellationData: ChartDataPoint[] = popularAirlines?.data?.popular_airlines?.map((airline: { airlineCode: string; count: number }) => ({
-    name: airline.airlineCode,
-    value: 0, // This would need a separate API call for cancellation rates per airline
-    count: airline.count
-  })) || [];
 
   // Show loading state with skeleton
   if (apiLoading) {
@@ -75,7 +59,7 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
       <div className="tab-content">
         {/* Booking System Performance Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Rendimiento del Sistema de Reservas</h2>
+          <h2 className="section-title">Rendimiento del Sistema</h2>
           <div className="grid grid-cols-2">
             <MetricCardSkeleton count={2} />
           </div>
@@ -83,22 +67,10 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
 
         {/* Flight Operations Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Operaciones de Vuelo y Disponibilidad</h2>
+          <h2 className="section-title">Operaciones de Vuelo</h2>
           <div className="grid grid-cols-1">
             <MetricCardSkeleton count={1} />
           </div>
-        </section>
-
-        {/* Popular Airlines Distribution Skeleton */}
-        <section className="metrics-section">
-          <div className="grid grid-cols-1">
-            <ChartCardSkeleton height={350} type="pie" />
-          </div>
-        </section>
-
-        {/* Cancellation Analysis Skeleton */}
-        <section className="metrics-section">
-          <ChartCardSkeleton height={300} type="bar" />
         </section>
       </div>
     );
@@ -119,7 +91,7 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
     <div className="tab-content">
       {/* Booking System Performance */}
       <section className="metrics-section">
-        <h2 className="section-title">Rendimiento del Sistema de Reservas</h2>
+        <h2 className="section-title">Rendimiento del Sistema</h2>
         <div className="grid grid-cols-2">
           {realTimeOperationalMetrics.map((metric, index) => (
             <MetricCard key={`operational-${index}`} metric={metric} />
@@ -127,39 +99,14 @@ const Operations: React.FC<OperationsProps> = ({ selectedPeriod }) => {
         </div>
       </section>
 
-      {/* Flight Operations and Availability */}
+      {/* Flight Operations */}
       <section className="metrics-section">
-        <h2 className="section-title">Operaciones de Vuelo y Disponibilidad</h2>
+        <h2 className="section-title">Operaciones de Vuelo</h2>
         <div className="grid grid-cols-1">
           {realTimeFlightMetrics.map((metric, index) => (
             <MetricCard key={`flight-${index}`} metric={metric} />
           ))}
         </div>
-      </section>
-
-      {/* Popular Airlines Distribution */}
-      <section className="metrics-section">
-        <div className="grid grid-cols-1">
-          <ChartCard 
-            title="Distribución de Aerolíneas Populares"
-            data={popularAirlinesData}
-            type="pie"
-            height={350}
-            valueKey="value"
-          />
-        </div>
-      </section>
-
-      {/* Cancellation Analysis */}
-      <section className="metrics-section">
-        <ChartCard 
-          title="Análisis de Tasa de Cancelación"
-          data={cancellationData}
-          type="bar"
-          height={300}
-          valueKey="value"
-          color="#EF4444"
-        />
       </section>
     </div>
   );

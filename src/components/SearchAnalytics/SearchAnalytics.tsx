@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
 import { useSearchMetrics, useSearchCartSummary } from '../../hooks/useAnalytics';
@@ -28,56 +28,66 @@ const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => 
   const isLoading = searchLoading || cartLoading;
   const isError = searchError || cartError;
 
+  // Calculate average results from routes with valid data
+  const avgResults = useMemo(() => {
+    if (!searchMetricsData?.routes?.length) return 0;
+    const routesWithResults = searchMetricsData.routes.filter(
+      (route: { avg_results: number | null }) => route.avg_results !== null
+    );
+    if (routesWithResults.length === 0) return 0;
+    return routesWithResults.reduce(
+      (sum: number, route: { avg_results: number | null }) => sum + (route.avg_results || 0),
+      0
+    ) / routesWithResults.length;
+  }, [searchMetricsData]);
+
   // Create search metrics from API data
   const searchMetrics: MetricData[] = [
     {
       title: "Total de Búsquedas",
-      value: searchMetricsData?.search_metrics?.length?.toString() || "0",
+      value: searchMetricsData?.total_searches?.toLocaleString() || "0",
+      change: 0
+    },
+    {
+      title: "Rutas Únicas",
+      value: searchMetricsData?.total_routes?.toLocaleString() || "0",
       change: 0
     },
     {
       title: "Promedio de Resultados",
-      value: searchMetricsData?.search_metrics?.length ? 
-        (searchMetricsData.search_metrics.reduce((sum: number, metric: { results_count: number }) => sum + metric.results_count, 0) / searchMetricsData.search_metrics.length).toFixed(0) : "0",
-      change: 0
-    },
-    {
-      title: "Tasa de Conversión",
-      value: searchMetricsData?.search_metrics?.length ? 
-        `${(searchMetricsData.search_metrics.reduce((sum: number, metric: { conversion_rate: number }) => sum + metric.conversion_rate, 0) / searchMetricsData.search_metrics.length * 100).toFixed(1)}%` : "0%",
+      value: avgResults > 0 ? avgResults.toFixed(0) : "0",
       change: 0
     },
     {
       title: "Items en Carrito",
-      value: cartSummaryData?.cart_summary?.reduce((sum: number, cart: { cart_items: number }) => sum + cart.cart_items, 0)?.toString() || "0",
+      value: cartSummaryData?.total_additions?.toLocaleString() || "0",
       change: 0
     }
   ];
 
-  // Create search metrics chart data
-  const searchChartData: ChartDataPoint[] = searchMetricsData?.search_metrics?.slice(0, 8).map((metric: any) => ({
-    name: `${metric.origin} → ${metric.destination}`,
-    value: metric.search_count,
-    conversion_rate: metric.conversion_rate,
-    results_count: metric.results_count
-  })) || [];
+  // Create search metrics chart data - filter out routes with "None" origin/destination
+  const searchChartData: ChartDataPoint[] = searchMetricsData?.routes
+    ?.filter((route: { origin: string; destination: string }) => route.origin !== 'None' && route.destination !== 'None')
+    ?.slice(0, 10)
+    ?.map((route: { origin: string; destination: string; searches: number; avg_results: number | null }) => ({
+      name: `${route.origin} → ${route.destination}`,
+      value: route.searches,
+      avg_results: route.avg_results || 0,
+      searches: route.searches
+    })) || [];
 
   // Create cart summary table data with formatted values
-  const cartTableData: TableData[] = cartSummaryData?.cart_summary?.map((cart: any) => ({
-    user_id: cart.user_id,
-    cart_items: cart.cart_items,
-    total_value: `${cart.currency} ${cart.total_value.toLocaleString()}`,
-    conversion_rate: `${(cart.conversion_rate * 100).toFixed(1)}%`,
-    avg_time_in_cart: `${cart.avg_time_in_cart.toFixed(1)} min`
+  const cartTableData: TableData[] = cartSummaryData?.cart_items?.map((item: { flightId: string | number; additions: number; last_added_at: string }) => ({
+    flightId: item.flightId.toString(),
+    additions: item.additions,
+    last_added_at: new Date(item.last_added_at).toLocaleString('es-ES')
   })) || [];
 
   // Define table columns for cart summary
   const cartTableColumns: TableColumn[] = [
-    { key: 'user_id', title: 'Usuario' },
-    { key: 'cart_items', title: 'Items' },
-    { key: 'total_value', title: 'Valor Total' },
-    { key: 'conversion_rate', title: 'Conversión' },
-    { key: 'avg_time_in_cart', title: 'Tiempo Promedio' }
+    { key: 'flightId', title: 'ID de Vuelo' },
+    { key: 'additions', title: 'Agregados', render: (value: number) => value.toLocaleString() },
+    { key: 'last_added_at', title: 'Última Adición' }
   ];
 
   // Show loading state with skeleton
@@ -137,12 +147,13 @@ const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => 
 
       {/* Search Chart */}
       <section className="chart-section">
-        <h2 className="section-title">Búsquedas por Ruta (Top {searchChartData.length})</h2>
+        <h2 className="section-title">Búsquedas por Ruta</h2>
         <ChartCard
-          title="Búsquedas Realizadas"
+          title="Búsquedas Realizadas por Ruta"
           data={searchChartData}
           type="bar"
           height={300}
+          valueKey="value"
         />
       </section>
 
@@ -150,9 +161,9 @@ const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => 
       <section className="table-section">
         <h2 className="section-title">Resumen del Carrito de Búsqueda</h2>
         <DataTable
+          title="Items Agregados al Carrito"
           data={cartTableData}
           columns={cartTableColumns}
-          title="Actividad del Carrito"
         />
       </section>
     </div>

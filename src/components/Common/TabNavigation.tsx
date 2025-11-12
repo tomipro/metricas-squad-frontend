@@ -19,9 +19,14 @@ interface TabNavigationProps {
 
 const tabs: Tab[] = [
   {
+    key: 'summary',
+    label: 'Vista General',
+    icon: 'VG'
+  },
+  {
     key: 'executive',
-    label: 'Resumen Ejecutivo',
-    icon: 'RE'
+    label: 'KPIs Ejecutivos',
+    icon: 'KP'
   },
   {
     key: 'operations', 
@@ -30,8 +35,8 @@ const tabs: Tab[] = [
   },
   {
     key: 'analytics',
-    label: 'Analíticas',
-    icon: 'AN'
+    label: 'Análisis de Usuarios',
+    icon: 'AU'
   },
   {
     key: 'fleet',
@@ -39,14 +44,9 @@ const tabs: Tab[] = [
     icon: 'GF'
   },
   {
-    key: 'summary',
-    label: 'Resumen General',
-    icon: 'RG'
-  },
-  {
     key: 'search',
-    label: 'Búsquedas',
-    icon: 'BS'
+    label: 'Análisis de Búsquedas',
+    icon: 'AB'
   }
 ];
 
