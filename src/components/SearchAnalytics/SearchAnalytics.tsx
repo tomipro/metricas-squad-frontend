@@ -9,17 +9,15 @@ import {
   TableColumn,
   TableData
 } from '../../types/dashboard';
+import { getDaysFromPeriod } from '../../utils/periodUtils';
 import '../../components/LoadingStates.css';
 
 interface SearchAnalyticsProps extends ComponentProps {}
 
 const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => {
   // Convert selectedPeriod to days for API calls
-  const getDaysFromPeriod = (period: string): number => {
-    return parseInt(period, 10) || 14; // Default to 14 days for search metrics
-  };
-
-  const days = getDaysFromPeriod(selectedPeriod);
+  // Note: SearchAnalytics uses default of 14 days, but we'll use the utility function
+  const days = getDaysFromPeriod(selectedPeriod) || 14;
   
   // Use TanStack Query hooks for real-time data
   const { data: searchMetricsData, isLoading: searchLoading, isError: searchError } = useSearchMetrics(days, 10);

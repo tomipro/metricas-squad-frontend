@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TabNavigation, TabKey } from './Common';
 import UserMenu from './Common/UserMenu';
 import ExecutiveSummary from './ExecutiveSummary';
-import Operations from './Operations';
 import Analytics from './Analytics';
 import FleetManagement from './FleetManagement';
 import { Summary } from './Summary';
@@ -10,15 +10,37 @@ import { SearchAnalytics } from './SearchAnalytics';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('summary');
-  const [selectedPeriod, setSelectedPeriod] = useState('365');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Helper function to validate and get tab from query param
+  const getTabFromParams = (params: URLSearchParams): TabKey => {
+    const tabParam = params.get('tab');
+    const validTabs: TabKey[] = ['executive', 'analytics', 'fleet', 'summary', 'search'];
+    return (tabParam && validTabs.includes(tabParam as TabKey)) ? (tabParam as TabKey) : 'summary';
+  };
+
+  // Read current values from URL query params
+  const activeTab = getTabFromParams(searchParams);
+  const selectedPeriod = searchParams.get('period') || '365';
+
+  // Handler to update tab and sync with URL
+  const handleTabChange = (tab: TabKey) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', tab);
+    setSearchParams(params, { replace: true });
+  };
+
+  // Handler to update period and sync with URL
+  const handlePeriodChange = (period: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('period', period);
+    setSearchParams(params, { replace: true });
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'executive':
         return <ExecutiveSummary selectedPeriod={selectedPeriod} />;
-      case 'operations':
-        return <Operations selectedPeriod={selectedPeriod} />;
       case 'analytics':
         return <Analytics selectedPeriod={selectedPeriod} />;
       case 'fleet':
@@ -50,9 +72,9 @@ const Dashboard: React.FC = () => {
 
       <TabNavigation 
         activeTab={activeTab} 
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         selectedPeriod={selectedPeriod}
-        onPeriodChange={setSelectedPeriod}
+        onPeriodChange={handlePeriodChange}
       />
 
       <main className="dashboard-content">

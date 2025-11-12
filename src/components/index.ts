@@ -11,7 +11,6 @@ export { default as ProtectedRoute } from './ProtectedRoute';
 // Feature Components
 export * from './Analytics';
 export * from './ExecutiveSummary';
-export * from './Operations';
 export * from './FleetManagement';
 export * from './Summary';
 export * from './SearchAnalytics';

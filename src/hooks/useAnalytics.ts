@@ -260,10 +260,12 @@ export const useFlightsAircraft = (days: number = 30): UseQueryResult<FlightsAir
 export const useExecutiveSummary = (days: number = 7) => {
   const funnelData = useFunnelData(days);
   const averageFare = useAverageFare(days);
-  const monthlyRevenue = useMonthlyRevenue(6);
+  // Convert days to months (minimum 1 month, round up)
+  const months = Math.max(1, Math.ceil(days / 30));
+  const monthlyRevenue = useMonthlyRevenue(months);
   const revenuePerUser = useRevenuePerUser(days, 10);
   const paymentSuccess = usePaymentSuccessRate(days);
-  const anticipation = useAnticipation(90);
+  const anticipation = useAnticipation(days);
 
   return {
     funnelData,
@@ -296,24 +298,20 @@ export const useOperations = (days: number = 7): OperationsHookReturn => {
   const funnelData = useFunnelData(days);
   const paymentSuccess = usePaymentSuccessRate(days);
   const cancellationRate = useCancellationRate(days);
-  const popularAirlines = usePopularAirlines(days, 5);
 
   return {
     funnelData,
     paymentSuccess,
     cancellationRate,
-    popularAirlines,
     isLoading: [
       funnelData.isLoading,
       paymentSuccess.isLoading,
       cancellationRate.isLoading,
-      popularAirlines.isLoading,
     ].some(Boolean),
     isError: [
       funnelData.isError,
       paymentSuccess.isError,
       cancellationRate.isError,
-      popularAirlines.isError,
     ].some(Boolean),
   };
 };
@@ -323,7 +321,7 @@ export const useAnalytics = (days: number = 7): AnalyticsHookReturn => {
   const bookingHours = useBookingHours(days);
   const userOrigins = useUserOrigins(days, 10);
   const paymentSuccess = usePaymentSuccessRate(days);
-  const anticipation = useAnticipation(90);
+  const anticipation = useAnticipation(days);
 
   return {
     bookingHours,

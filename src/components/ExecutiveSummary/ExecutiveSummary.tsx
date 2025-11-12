@@ -7,16 +7,13 @@ import {
   MetricData, 
   ChartDataPoint
 } from '../../types/dashboard';
+import { getDaysFromPeriod } from '../../utils/periodUtils';
 import '../../components/LoadingStates.css';
 
 interface ExecutiveSummaryProps extends ComponentProps {}
 
 const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) => {
   // Convert selectedPeriod to days for API calls
-  const getDaysFromPeriod = (period: string): number => {
-    return parseInt(period, 10) || 30; // Default to 30 days if parsing fails
-  };
-
   const days = getDaysFromPeriod(selectedPeriod);
   
   // Use TanStack Query hooks for real-time data
@@ -36,11 +33,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
     {
       title: "Valor Promedio de Reserva",
       value: `$${averageFare?.data?.avg_fare?.toFixed(0) || "0"}`,
-      change: 0
-    },
-    {
-      title: "Ingresos Mensuales",
-      value: `$${monthlyRevenue?.data?.monthly?.reduce((sum: number, month: { revenue: number }) => sum + month.revenue, 0)?.toFixed(1) || "0"}M`,
       change: 0
     },
     {
@@ -93,6 +85,28 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
     }
   ];
 
+  // Create conversion metrics as cards
+  const conversionMetrics: MetricData[] = [
+    {
+      title: "Tasa de Conversión",
+      value: funnelData?.data?.conversion?.search_to_pay?.toFixed(1) || "0.0",
+      unit: "%",
+      change: 0
+    },
+    {
+      title: "Búsqueda → Reserva",
+      value: funnelData?.data?.conversion?.search_to_reserve?.toFixed(1) || "0.0",
+      unit: "%",
+      change: 0
+    },
+    {
+      title: "Reserva → Pago",
+      value: funnelData?.data?.conversion?.reserve_to_pay?.toFixed(1) || "0.0",
+      unit: "%",
+      change: 0
+    }
+  ];
+
   // Create conversion metrics chart data with percentage values
   const conversionChartData: ChartDataPoint[] = [
     {
@@ -127,6 +141,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
           </div>
         </section>
 
+
         {/* Revenue Trend Skeleton */}
         <section className="metrics-section">
           <div className="grid grid-cols-1">
@@ -137,9 +152,16 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
         {/* Operational Excellence Skeleton */}
         <section className="metrics-section">
           <h2 className="section-title">Excelencia Operacional</h2>
-          <div className="grid grid-asymmetric-2">
-            <MetricCardSkeleton count={1} />
-            <ChartCardSkeleton height={180} type="bar" />
+          <div className="grid grid-cols-2">
+            <MetricCardSkeleton count={2} />
+          </div>
+        </section>
+
+        {/* Conversion Metrics Skeleton */}
+        <section className="metrics-section">
+          <h2 className="section-title">Tasas de Conversión</h2>
+          <div className="grid grid-cols-3">
+            <MetricCardSkeleton count={3} />
           </div>
         </section>
 
@@ -186,7 +208,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
               size="medium"
             />
             <MetricCard 
-              metric={realTimeMetrics[2]}
+              metric={realTimeMetrics[1]}
               variant="highlighted"
               size="medium"
             />
@@ -208,23 +230,33 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
         </div>
       </section>
 
-      {/* Operational Excellence - One card + chart */}
+      {/* Operational Excellence - Metrics cards */}
       <section className="metrics-section">
         <h2 className="section-title">Excelencia Operacional</h2>
-        <div className="grid grid-asymmetric-2">
-          <MetricCard 
-            metric={operationalMetrics[0]}
-            variant="highlighted"
-            size="large"
-          />
-          <ChartCard 
-            title="Anticipación Promedio"
-            data={[{ name: 'Días', value: parseFloat(anticipation?.data?.avg_anticipation_days?.toFixed(0) || "0") }]}
-            type="bar"
-            height={180}
-            valueKey="value"
-            color="#66CED6"
-          />
+        <div className="grid grid-cols-2">
+          {operationalMetrics.map((metric, index) => (
+            <MetricCard 
+              key={`operational-${index}`}
+              metric={metric}
+              variant={index === 0 ? 'highlighted' : 'accent'}
+              size="medium"
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Conversion Metrics */}
+      <section className="metrics-section">
+        <h2 className="section-title">Tasas de Conversión</h2>
+        <div className="grid grid-cols-3">
+          {conversionMetrics.map((metric, index) => (
+            <MetricCard 
+              key={`conversion-${index}`}
+              metric={metric}
+              variant={index === 0 ? 'featured' : index === 1 ? 'highlighted' : 'accent'}
+              size="medium"
+            />
+          ))}
         </div>
       </section>
 

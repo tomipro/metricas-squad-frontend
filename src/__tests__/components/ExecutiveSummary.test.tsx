@@ -97,13 +97,13 @@ describe('ExecutiveSummary Component', () => {
       );
 
       // Check for section titles
-      expect(screen.getByText('Rendimiento Financiero del Sistema de Reservas')).toBeInTheDocument();
+      expect(screen.getByText('Rendimiento Financiero')).toBeInTheDocument();
       expect(screen.getByText('Excelencia Operacional')).toBeInTheDocument();
-      expect(screen.getByText('Experiencia del Usuario y Retención')).toBeInTheDocument();
+      expect(screen.getByText('Experiencia del Usuario')).toBeInTheDocument();
 
       // Check for skeleton components
-      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(10); // 3 + 2 + 5
-      expect(screen.getByTestId('chart-card-skeleton')).toBeInTheDocument();
+      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(11); // 3 (Rendimiento) + 2 (Operacional) + 3 (Conversión) + 3 (Usuario)
+      expect(screen.getAllByTestId('chart-card-skeleton')).toHaveLength(2); // Revenue trend + Conversion chart
     });
 
     it('should render partial loading state correctly', () => {
@@ -115,7 +115,7 @@ describe('ExecutiveSummary Component', () => {
       );
 
       // Should still show loading skeletons
-      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(10);
+      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(11);
     });
   });
 
@@ -154,14 +154,14 @@ describe('ExecutiveSummary Component', () => {
       );
 
       // Check for section titles
-      expect(screen.getByText('Rendimiento Financiero del Sistema de Reservas')).toBeInTheDocument();
+      expect(screen.getByText('Rendimiento Financiero')).toBeInTheDocument();
       expect(screen.getByText('Excelencia Operacional')).toBeInTheDocument();
       expect(screen.getByText('Tendencia de Ingresos Mensuales ($M)')).toBeInTheDocument();
-      expect(screen.getByText('Experiencia del Usuario y Retención')).toBeInTheDocument();
+      expect(screen.getByText('Experiencia del Usuario')).toBeInTheDocument();
 
       // Check for metric cards
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(10); // 3 + 2 + 5
-      expect(screen.getByTestId('chart-card')).toBeInTheDocument();
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(11); // 1 (Ingresos Mensuales) + 2 (Rendimiento) + 2 (Operacional) + 3 (Conversión) + 3 (Usuario)
+      expect(screen.getAllByTestId('chart-card')).toHaveLength(2); // Revenue trend + Conversion chart
     });
 
     it('should render financial performance metrics correctly', () => {
@@ -208,15 +208,16 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      // Check engagement metrics (5 total)
+      // Check engagement metrics
       expect(screen.getByText('Total de Búsquedas')).toBeInTheDocument();
-      expect(screen.getByText('15,000')).toBeInTheDocument();
+      // Format depends on locale - could be "15.000" or "15,000" depending on environment
+      expect(screen.getByText(/15[.,]000/)).toBeInTheDocument();
       
       expect(screen.getByText('Total de Reservas')).toBeInTheDocument();
-      expect(screen.getByText('4,500')).toBeInTheDocument();
+      expect(screen.getByText(/4[.,]500/)).toBeInTheDocument();
       
       expect(screen.getByText('Total de Pagos')).toBeInTheDocument();
-      expect(screen.getByText('3,200')).toBeInTheDocument();
+      expect(screen.getByText(/3[.,]200/)).toBeInTheDocument();
       
       expect(screen.getByText('Búsqueda a Reserva')).toBeInTheDocument();
       expect(screen.getByText('30.0')).toBeInTheDocument();
@@ -233,12 +234,16 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      const chartCard = screen.getByTestId('chart-card');
+      const chartCards = screen.getAllByTestId('chart-card');
+      const chartCard = chartCards[0]; // Revenue trend chart
       expect(chartCard).toBeInTheDocument();
       
-      expect(screen.getByTestId('chart-title')).toHaveTextContent('Tendencia de Ingresos Mensuales ($M)');
-      expect(screen.getByTestId('chart-type')).toHaveTextContent('line');
-      expect(screen.getByTestId('chart-color')).toHaveTextContent('#10B981');
+      const chartTitles = screen.getAllByTestId('chart-title');
+      expect(chartTitles[0]).toHaveTextContent('Tendencia de Ingresos Mensuales ($M)');
+      const chartTypes = screen.getAllByTestId('chart-type');
+      expect(chartTypes[0]).toHaveTextContent('line');
+      const chartColors = screen.getAllByTestId('chart-color');
+      expect(chartColors[0]).toHaveTextContent('#10B981');
     });
   });
 
@@ -253,10 +258,10 @@ describe('ExecutiveSummary Component', () => {
 
       // Should render with default values
       expect(screen.getByText('Valor Promedio de Reserva')).toBeInTheDocument();
-      expect(screen.getAllByText('$0')).toHaveLength(3); // 3 financial metrics
+      expect(screen.getAllByText('$0')).toHaveLength(2); // 2 financial metrics (Valor Promedio + Ingresos por Usuario)
       
       expect(screen.getByText('Tasa de Éxito de Pago')).toBeInTheDocument();
-      expect(screen.getAllByText('0.0')).toHaveLength(3); // Payment success + 2 conversion rates
+      expect(screen.getAllByText('0.0')).toHaveLength(4); // Payment success + 3 conversion rates
     });
   });
 
@@ -348,11 +353,12 @@ describe('ExecutiveSummary Component', () => {
       );
 
       const headings = screen.getAllByRole('heading', { level: 2 });
-      expect(headings).toHaveLength(3);
+      expect(headings).toHaveLength(4); // Rendimiento Financiero + Excelencia Operacional + Tasas de Conversión + Experiencia del Usuario
       
-      expect(headings[0]).toHaveTextContent('Rendimiento Financiero del Sistema de Reservas');
+      expect(headings[0]).toHaveTextContent('Rendimiento Financiero');
       expect(headings[1]).toHaveTextContent('Excelencia Operacional');
-      expect(headings[2]).toHaveTextContent('Experiencia del Usuario y Retención');
+      expect(headings[2]).toHaveTextContent('Tasas de Conversión');
+      expect(headings[3]).toHaveTextContent('Experiencia del Usuario');
     });
 
     it('should have proper test ids for testing', () => {
@@ -363,8 +369,8 @@ describe('ExecutiveSummary Component', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('chart-card')).toBeInTheDocument();
-      expect(screen.getAllByTestId('metric-card')).toHaveLength(10); // 3 + 2 + 5
+      expect(screen.getAllByTestId('chart-card')).toHaveLength(2); // Revenue trend + Conversion chart
+      expect(screen.getAllByTestId('metric-card')).toHaveLength(11); // 1 (Ingresos Mensuales) + 2 (Rendimiento) + 2 (Operacional) + 3 (Conversión) + 3 (Usuario)
     });
   });
 });
