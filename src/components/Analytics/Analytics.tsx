@@ -8,16 +8,13 @@ import {
   TableColumn,
   TableData
 } from '../../types/dashboard';
+import { getDaysFromPeriod } from '../../utils/periodUtils';
 import '../../components/LoadingStates.css';
 
 interface AnalyticsProps extends ComponentProps {}
 
 const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
   // Convert selectedPeriod to days for API calls
-  const getDaysFromPeriod = (period: string): number => {
-    return parseInt(period, 10) || 30; // Default to 30 days if parsing fails
-  };
-
   const days = getDaysFromPeriod(selectedPeriod);
   
   // Use TanStack Query hooks for real-time data

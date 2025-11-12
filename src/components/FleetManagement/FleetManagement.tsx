@@ -12,14 +12,12 @@ import {
 import airlineNames from '../../data/airlineNames.json';
 import '../../components/LoadingStates.css';
 
+import { getDaysFromPeriod } from '../../utils/periodUtils';
+
 interface FleetManagementProps extends ComponentProps {}
 
 const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => {
   // Convert selectedPeriod to days for API calls
-  const getDaysFromPeriod = (period: string): number => {
-    return parseInt(period, 10) || 30; // Default to 30 days if parsing fails
-  };
-
   const days = getDaysFromPeriod(selectedPeriod);
   
   // Use TanStack Query hooks for real-time data
