@@ -1,4 +1,4 @@
-import { analyticsApi, apiRequest } from './axiosConfig';
+import { analyticsApi, analyticsApiExtendedTimeout, apiRequest } from './axiosConfig';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -173,14 +173,17 @@ export interface SearchMetrics {
 export interface CatalogAirlineSummary {
   period_days: number;
   currency: string;
+  invalid_currency: boolean;
   airlines: Array<{
-    airline_code: string;
-    airline_name: string;
-    total_flights: number;
-    total_revenue: number;
+    airline: string;
+    flights: number;
     avg_price: number;
-    market_share: number;
+    min_price: number;
+    max_price: number;
+    avg_capacity: number | null;
+    total_capacity: number | null;
   }>;
+  total_flights: number;
 }
 
 export interface SearchCartSummary {
@@ -315,9 +318,9 @@ export const getTimeToComplete = (days: number = 7): Promise<TimeToComplete> =>
 // NEW ANALYTICS API FUNCTIONS
 // =============================================================================
 
-// Summary
+// Summary - Uses extended timeout instance (60 seconds) as this endpoint takes longer to process
 export const getSummary = (): Promise<SummaryData> =>
-  apiRequest<SummaryData>(analyticsApi, {
+  apiRequest<SummaryData>(analyticsApiExtendedTimeout, {
     method: 'GET',
     url: '/analytics/summary',
   });

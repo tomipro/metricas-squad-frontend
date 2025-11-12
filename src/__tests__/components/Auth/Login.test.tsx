@@ -55,7 +55,7 @@ describe('Login Component', () => {
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument();
-      expect(screen.getByText(/¿olvidaste tu contraseña\?/i)).toBeInTheDocument();
+      // Forgot password functionality has been removed
     });
 
     it('should render email input with correct attributes', () => {
@@ -475,7 +475,10 @@ describe('Login Component', () => {
   // =============================================================================
   // FORGOT PASSWORD TESTS
   // =============================================================================
-
+  // Note: Forgot password functionality has been removed from Login component
+  // These tests are commented out as the feature is no longer present
+  
+  /*
   describe('Forgot Password', () => {
     it('should call onForgotPassword callback when link is clicked', async () => {
       const user = userEvent.setup();
@@ -501,6 +504,7 @@ describe('Login Component', () => {
       }).not.toThrow();
     });
   });
+  */
 
   // =============================================================================
   // ACCESSIBILITY TESTS
@@ -528,10 +532,9 @@ describe('Login Component', () => {
       renderWithRouter(<Login />);
 
       const submitButton = screen.getByRole('button', { name: /iniciar sesión/i });
-      const forgotPasswordButton = screen.getByRole('button', { name: /¿olvidaste tu contraseña\?/i });
 
       expect(submitButton).toBeInTheDocument();
-      expect(forgotPasswordButton).toBeInTheDocument();
+      // Forgot password functionality has been removed
     });
   });
 

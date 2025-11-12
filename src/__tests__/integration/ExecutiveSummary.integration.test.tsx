@@ -97,31 +97,33 @@ describe('ExecutiveSummary Integration Tests', () => {
       );
 
       // Initially should show loading state
-      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(12);
-      expect(screen.getByTestId('chart-card-skeleton')).toBeInTheDocument();
+      expect(screen.getAllByTestId('metric-card-skeleton')).toHaveLength(11); // 3 + 2 + 3 + 3
+      expect(screen.getAllByTestId('chart-card-skeleton')).toHaveLength(2); // Revenue trend + Conversion chart
 
       // Wait for data to load
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11); // 1 + 2 + 2 + 3 + 3
       });
 
       // Verify all API calls were made
       expect(mockedAnalyticsService.getFunnelData).toHaveBeenCalledWith(30);
       expect(mockedAnalyticsService.getAverageFare).toHaveBeenCalledWith(30);
-      expect(mockedAnalyticsService.getMonthlyRevenue).toHaveBeenCalledWith(6);
-      expect(mockedAnalyticsService.getLifetimeValue).toHaveBeenCalledWith(10);
+      // For 30 days, months = Math.ceil(30/30) = 1
+      expect(mockedAnalyticsService.getMonthlyRevenue).toHaveBeenCalledWith(1);
+      // getLifetimeValue is not used in useExecutiveSummary hook
       expect(mockedAnalyticsService.getRevenuePerUser).toHaveBeenCalledWith(30, 10);
       expect(mockedAnalyticsService.getPaymentSuccessRate).toHaveBeenCalledWith(30);
-      expect(mockedAnalyticsService.getAnticipation).toHaveBeenCalledWith(90);
+      // Anticipation now uses the same days parameter (30) instead of hardcoded 90
+      expect(mockedAnalyticsService.getAnticipation).toHaveBeenCalledWith(30);
 
       // Verify all sections are rendered
-      expect(screen.getByText('Rendimiento Financiero del Sistema de Reservas')).toBeInTheDocument();
+      expect(screen.getByText('Rendimiento Financiero')).toBeInTheDocument();
       expect(screen.getByText('Excelencia Operacional')).toBeInTheDocument();
       expect(screen.getByText('Tendencia de Ingresos Mensuales ($M)')).toBeInTheDocument();
-      expect(screen.getByText('Experiencia del Usuario y Retención')).toBeInTheDocument();
+      expect(screen.getByText('Experiencia del Usuario')).toBeInTheDocument();
 
-      // Verify chart is rendered
-      expect(screen.getByTestId('chart-card')).toBeInTheDocument();
+      // Verify charts are rendered (2 charts: revenue trend + conversion)
+      expect(screen.getAllByTestId('chart-card')).toHaveLength(2);
     });
 
     it('should handle different period values correctly', async () => {
@@ -207,7 +209,7 @@ describe('ExecutiveSummary Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11);
       });
 
       // Verify financial metrics are correctly transformed
@@ -231,10 +233,11 @@ describe('ExecutiveSummary Integration Tests', () => {
 
       // Verify engagement metrics
       expect(screen.getByText('Total de Búsquedas')).toBeInTheDocument();
-      expect(screen.getByText('15,000')).toBeInTheDocument();
+      // Format depends on locale - could be "15.000" or "15,000" depending on environment
+      expect(screen.getByText(/15[.,]000/)).toBeInTheDocument();
       
       expect(screen.getByText('Total de Reservas')).toBeInTheDocument();
-      expect(screen.getByText('4,500')).toBeInTheDocument();
+      expect(screen.getByText(/4[.,]500/)).toBeInTheDocument();
     });
 
     it('should handle empty data responses', async () => {
@@ -254,11 +257,11 @@ describe('ExecutiveSummary Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11);
       });
 
       // Should show default values
-      expect(screen.getAllByText('0.0')).toHaveLength(3);
+      expect(screen.getAllByText('0.0')).toHaveLength(4); // Payment success + 3 conversion rates
       expect(screen.getAllByText('%')).toHaveLength(4);
       expect(screen.getAllByText('0')).toHaveLength(3);
     });
@@ -312,7 +315,7 @@ describe('ExecutiveSummary Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11); // 1 + 2 + 2 + 3 + 3
       });
 
       // All API calls should have been made
@@ -335,15 +338,15 @@ describe('ExecutiveSummary Integration Tests', () => {
 
       // During loading
       const loadingHeadings = screen.getAllByRole('heading', { level: 2 });
-      expect(loadingHeadings).toHaveLength(3); // Only section titles, not chart title
+      expect(loadingHeadings).toHaveLength(4); // Rendimiento Financiero + Excelencia Operacional + Tasas de Conversión + Experiencia del Usuario
 
       // After loading
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11);
       });
 
       const successHeadings = screen.getAllByRole('heading', { level: 2 });
-      expect(successHeadings).toHaveLength(3); // Only section titles, not chart title
+      expect(successHeadings).toHaveLength(4); // Rendimiento Financiero + Excelencia Operacional + Tasas de Conversión + Experiencia del Usuario
     });
 
     it('should provide proper test ids for all interactive elements', async () => {
@@ -353,7 +356,7 @@ describe('ExecutiveSummary Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('metric-card')).toHaveLength(12);
+        expect(screen.getAllByTestId('metric-card')).toHaveLength(11);
       });
 
       // Verify all metric cards have proper test ids

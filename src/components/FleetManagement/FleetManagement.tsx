@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { usePopularAirlines, useCatalogAirlineSummary, useFlightsAircraft } from '../../hooks/useAnalytics';
+import { useCatalogAirlineSummary, useFlightsAircraft } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   MetricData, 
@@ -9,6 +9,7 @@ import {
   TableColumn,
   TableData
 } from '../../types/dashboard';
+import airlineNames from '../../data/airlineNames.json';
 import '../../components/LoadingStates.css';
 
 interface FleetManagementProps extends ComponentProps {}
@@ -22,12 +23,16 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   const days = getDaysFromPeriod(selectedPeriod);
   
   // Use TanStack Query hooks for real-time data
-  const { data: popularAirlinesData, isLoading: popularAirlinesLoading, isError: popularAirlinesError } = usePopularAirlines(days, 5);
   const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
   const { data: flightsAircraftData, isLoading: aircraftLoading, isError: aircraftError } = useFlightsAircraft(days);
   
-  const isLoading = popularAirlinesLoading || catalogLoading || aircraftLoading;
-  const isError = popularAirlinesError || catalogError || aircraftError;
+  const isLoading = catalogLoading || aircraftLoading;
+  const isError = catalogError || aircraftError;
+
+  // Helper function to get airline name from code (memoized)
+  const getAirlineName = useCallback((airlineCode: string): string => {
+    return (airlineNames as Record<string, string>)[airlineCode] || airlineCode;
+  }, []);
 
   // Create fleet metrics from API data with proper typing
   const fleetMetrics: MetricData[] = [
@@ -38,41 +43,54 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
     },
     {
       title: "Total de Vuelos",
-      value: catalogAirlineData?.airlines?.reduce((sum: number, airline: { total_flights: number }) => sum + airline.total_flights, 0)?.toLocaleString() || "0",
+      value: catalogAirlineData?.total_flights?.toLocaleString() || "0",
       change: 0
     },
     {
       title: "Ingresos Totales",
-      value: `${catalogAirlineData?.currency || 'USD'} ${catalogAirlineData?.airlines?.reduce((sum: number, airline: { total_revenue: number }) => sum + airline.total_revenue, 0)?.toLocaleString() || "0"}`,
+      value: `${catalogAirlineData?.currency || 'USD'} ${catalogAirlineData?.airlines?.reduce((sum: number, airline: { flights: number; avg_price: number }) => sum + (airline.flights * airline.avg_price), 0)?.toLocaleString() || "0"}`,
       change: 0
     },
     {
       title: "Aerolínea Principal",
-      value: catalogAirlineData?.airlines?.[0]?.airline_name || "N/A",
+      value: catalogAirlineData?.airlines?.[0] ? getAirlineName(catalogAirlineData.airlines[0].airline) : "N/A",
       change: 0
     }
   ];
 
-  // Create popular airlines chart data from API with proper typing
-  const popularAirlinesChartData: ChartDataPoint[] = popularAirlinesData?.popular_airlines?.map((airline: { airlineCode: string; count: number; avg_price: number }) => ({
-    name: airline.airlineCode,
-    value: airline.count,
-    avgPrice: airline.avg_price,
-    count: airline.count
-  })) || [];
+  // Create popular airlines chart data from catalogAirlineData with proper typing
+  const popularAirlinesChartData: ChartDataPoint[] = useMemo(() => {
+    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
+      return [];
+    }
+    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => ({
+      name: getAirlineName(airline.airline),
+      value: airline.flights,
+      avgPrice: airline.avg_price,
+      count: airline.flights,
+      airlineCode: airline.airline
+    }));
+  }, [catalogAirlineData, getAirlineName]);
 
-  // Create airline details table data from API with proper typing
-  const airlineDetailsData: TableData[] = popularAirlinesData?.popular_airlines?.map((airline: { airlineCode: string; count: number; avg_price: number }) => ({
-    airlineCode: airline.airlineCode,
-    bookings: airline.count,
-    avgPrice: airline.avg_price,
-    revenue: airline.count * airline.avg_price
-  })) || [];
+  // Create airline details table data from catalogAirlineData with proper typing
+  const airlineDetailsData: TableData[] = useMemo(() => {
+    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
+      return [];
+    }
+    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => ({
+      airlineCode: airline.airline,
+      airlineName: getAirlineName(airline.airline),
+      bookings: airline.flights,
+      avgPrice: airline.avg_price,
+      revenue: airline.flights * airline.avg_price
+    }));
+  }, [catalogAirlineData, getAirlineName]);
 
   // Create columns for airline details table with proper typing
   const airlineColumns: TableColumn[] = [
-    { key: 'airlineCode', title: 'Código de Aerolínea' },
-    { key: 'bookings', title: 'Reservas', render: (value: number) => value.toLocaleString() },
+    { key: 'airlineName', title: 'Aerolínea' },
+    { key: 'airlineCode', title: 'Código' },
+    { key: 'bookings', title: 'Vuelos', render: (value: number) => value.toLocaleString() },
     { key: 'avgPrice', title: 'Precio Promedio', render: (value: number) => `$${value.toFixed(0)}` },
     { key: 'revenue', title: 'Ingresos', render: (value: number) => `$${value.toLocaleString()}` }
   ];
@@ -99,6 +117,97 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
     value: aircraft.capacity,
     updates: aircraft.updates
   })) || [];
+
+  // Create airline occupancy data from API - calculate percentage based on flights
+  const allAirlineOccupancyData: ChartDataPoint[] = useMemo(() => {
+    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0 || !catalogAirlineData.total_flights) {
+      return [];
+    }
+    const totalFlights = catalogAirlineData.total_flights;
+    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => {
+      const percentage = totalFlights > 0 ? (airline.flights / totalFlights) * 100 : 0;
+      const airlineName = getAirlineName(airline.airline);
+      return {
+        name: `${airlineName} (${airline.airline})`,
+        value: percentage,
+        percentage: percentage,
+        airlineCode: airline.airline,
+        airlineName: airlineName,
+        flights: airline.flights,
+        avgPrice: airline.avg_price
+      };
+    });
+  }, [catalogAirlineData, getAirlineName]);
+
+  // Initialize selected airlines with all airlines on first render
+  const [selectedAirlines, setSelectedAirlines] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  // Update selected airlines when data is loaded
+  useEffect(() => {
+    if (allAirlineOccupancyData.length > 0 && selectedAirlines.size === 0) {
+      setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
+    }
+  }, [allAirlineOccupancyData, selectedAirlines.size]);
+
+  // Filter data based on selected airlines
+  const airlineOccupancyData: ChartDataPoint[] = useMemo(() => {
+    if (selectedAirlines.size === 0) {
+      return [];
+    }
+    return allAirlineOccupancyData.filter(item => selectedAirlines.has(item.name));
+  }, [selectedAirlines, allAirlineOccupancyData]);
+
+  // Create table data with selection state
+  const airlineOccupancyTableData: TableData[] = useMemo(() => {
+    return allAirlineOccupancyData.map(item => ({
+      name: item.name,
+      value: item.value,
+      selected: selectedAirlines.has(item.name)
+    }));
+  }, [selectedAirlines, allAirlineOccupancyData]);
+
+  // Toggle airline selection (memoized to prevent recreation)
+  const toggleAirline = useCallback((airlineName: string) => {
+    setSelectedAirlines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(airlineName)) {
+        newSet.delete(airlineName);
+      } else {
+        newSet.add(airlineName);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all airlines (memoized)
+  const selectAllAirlines = useCallback(() => {
+    setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
+  }, [allAirlineOccupancyData]);
+
+  // Deselect all airlines (memoized)
+  const deselectAllAirlines = useCallback(() => {
+    setSelectedAirlines(new Set());
+  }, []);
+
+  // Create columns for airline occupancy table with proper typing (with checkbox) - memoized
+  const airlineOccupancyColumns: TableColumn[] = useMemo(() => [
+    { 
+      key: 'selected', 
+      title: '', 
+      render: (value: boolean, row?: TableData) => (
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={() => toggleAirline((row?.name as string) || '')}
+          style={{ cursor: 'pointer' }}
+        />
+      )
+    },
+    { key: 'name', title: 'Aerolínea' },
+    { key: 'value', title: 'Ocupación (%)', render: (value: number) => `${value.toFixed(1)}%` }
+  ], [toggleAirline]);
 
   // Show loading state with skeleton
   if (isLoading) {
@@ -133,6 +242,15 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
           <h2 className="section-title">Capacidad por Aeronave</h2>
           <div className="grid grid-cols-1">
             <ChartCardSkeleton height={400} type="barHorizontal" />
+          </div>
+        </section>
+
+        {/* Airline Occupancy Analysis Skeleton */}
+        <section className="metrics-section">
+          <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
+          <div className="grid grid-cols-2">
+            <ChartCardSkeleton height={300} type="bar" />
+            <DataTableSkeleton rows={6} columns={3} />
           </div>
         </section>
       </div>
@@ -230,6 +348,100 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
             columns={aircraftColumns}
             maxRows={15}
           />
+        </div>
+      </section>
+
+      {/* Airline Occupancy Analysis */}
+      <section className="metrics-section">
+        <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
+        <div className="grid grid-cols-2">
+          {allAirlineOccupancyData.length === 0 ? (
+            <ChartCard 
+              title="Ocupación de Aviones por Aerolínea (%)"
+              data={[]}
+              type="bar"
+              height={300}
+              valueKey="value"
+              color="#8B5CF6"
+            />
+          ) : airlineOccupancyData.length > 0 ? (
+            <ChartCard 
+              title="Ocupación de Aviones por Aerolínea (%)"
+              data={airlineOccupancyData}
+              type="bar"
+              height={300}
+              valueKey="value"
+              color="#8B5CF6"
+            />
+          ) : (
+            <div className="chart-card card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+              <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>Selecciona aerolíneas para mostrar en el gráfico</p>
+            </div>
+          )}
+          <DataTable 
+            title="Detalle de Ocupación por Aerolínea"
+            data={airlineOccupancyTableData}
+            columns={airlineOccupancyColumns}
+            maxRows={10}
+          />
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={selectAllAirlines}
+            disabled={allAirlineOccupancyData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#507BD8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#4169c4';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#507BD8';
+              }
+            }}
+          >
+            Seleccionar Todos
+          </button>
+          <button
+            onClick={deselectAllAirlines}
+            disabled={allAirlineOccupancyData.length === 0}
+            style={{
+              padding: '0.5rem 1rem',
+              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#E5E7EB',
+              color: '#374151',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background 0.2s ease',
+              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
+            }}
+            onMouseOver={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#D1D5DB';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (allAirlineOccupancyData.length > 0) {
+                e.currentTarget.style.background = '#E5E7EB';
+              }
+            }}
+          >
+            Deseleccionar Todos
+          </button>
         </div>
       </section>
     </div>

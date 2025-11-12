@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChartCard, DataTable } from '../Common';
 import { ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { useAnalytics, useCatalogAirlineSummary } from '../../hooks/useAnalytics';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   ChartDataPoint,
@@ -25,42 +25,12 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     bookingHours,
     userOrigins,
     paymentSuccess,
-    anticipation,
     isLoading: apiLoading,
     isError: apiError
   } = useAnalytics(days);
 
-  // Get airline data from API
-  const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
-  
-  const isLoading = apiLoading || catalogLoading;
-  const isError = apiError || catalogError;
-
-  // Create airline occupancy data from API - using market_share as occupancy percentage
-  const allAirlineOccupancyData: ChartDataPoint[] = useMemo(() => {
-    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
-      return [];
-    }
-    return catalogAirlineData.airlines.map((airline: { airline_code: string; airline_name: string; market_share: number }) => ({
-      name: `${airline.airline_name} (${airline.airline_code})`,
-      value: airline.market_share * 100, // Convert to percentage
-      percentage: airline.market_share * 100,
-      airlineCode: airline.airline_code,
-      airlineName: airline.airline_name
-    }));
-  }, [catalogAirlineData]);
-
-  // Initialize selected airlines with all airlines on first render
-  const [selectedAirlines, setSelectedAirlines] = useState<Set<string>>(
-    () => new Set()
-  );
-
-  // Update selected airlines when data is loaded
-  useEffect(() => {
-    if (allAirlineOccupancyData.length > 0 && selectedAirlines.size === 0) {
-      setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
-    }
-  }, [allAirlineOccupancyData, selectedAirlines.size]);
+  const isLoading = apiLoading;
+  const isError = apiError;
 
   // Create booking hours data from API with proper typing
   const bookingHoursData: ChartDataPoint[] = bookingHours?.data?.histogram?.map((item: { hour_utc: number; count: number }) => ({
@@ -149,54 +119,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     }
   ];
 
-  // Create anticipation data from API with proper typing
-  const anticipationData: ChartDataPoint[] = [
-    {
-      name: "Anticipación Promedio",
-      value: anticipation?.data?.avg_anticipation_days || 0,
-      days: anticipation?.data?.avg_anticipation_days || 0
-    }
-  ];
 
-  // Filter data based on selected airlines
-  const airlineOccupancyData: ChartDataPoint[] = useMemo(() => {
-    if (selectedAirlines.size === 0) {
-      return [];
-    }
-    return allAirlineOccupancyData.filter(item => selectedAirlines.has(item.name));
-  }, [selectedAirlines, allAirlineOccupancyData]);
 
-  // Create table data with selection state
-  const airlineOccupancyTableData: TableData[] = useMemo(() => {
-    return allAirlineOccupancyData.map(item => ({
-      name: item.name,
-      value: item.value,
-      selected: selectedAirlines.has(item.name)
-    }));
-  }, [selectedAirlines, allAirlineOccupancyData]);
-
-  // Toggle airline selection (memoized to prevent recreation)
-  const toggleAirline = useCallback((airlineName: string) => {
-    setSelectedAirlines(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(airlineName)) {
-        newSet.delete(airlineName);
-      } else {
-        newSet.add(airlineName);
-      }
-      return newSet;
-    });
-  }, []);
-
-  // Select all airlines (memoized)
-  const selectAllAirlines = useCallback(() => {
-    setSelectedAirlines(new Set(allAirlineOccupancyData.map(item => item.name)));
-  }, [allAirlineOccupancyData]);
-
-  // Deselect all airlines (memoized)
-  const deselectAllAirlines = useCallback(() => {
-    setSelectedAirlines(new Set());
-  }, []);
 
   // Toggle origin selection (memoized to prevent recreation)
   const toggleOrigin = useCallback((originName: string) => {
@@ -249,23 +173,6 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     { key: 'users', title: 'Usuarios', render: (value: number) => value.toLocaleString() }
   ], [toggleOrigin]);
 
-  // Create columns for airline occupancy table with proper typing (with checkbox) - memoized
-  const airlineOccupancyColumns: TableColumn[] = useMemo(() => [
-    { 
-      key: 'selected', 
-      title: '', 
-      render: (value: boolean, row?: TableData) => (
-        <input
-          type="checkbox"
-          checked={value}
-          onChange={() => toggleAirline((row?.name as string) || '')}
-          style={{ cursor: 'pointer' }}
-        />
-      )
-    },
-    { key: 'name', title: 'Aerolínea' },
-    { key: 'value', title: 'Ocupación (%)', render: (value: number) => `${value.toFixed(1)}%` }
-  ], [toggleAirline]);
 
   // Show loading state with skeleton
   if (isLoading) {
@@ -294,22 +201,6 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
           </div>
         </section>
 
-        {/* Anticipation Analysis Skeleton */}
-        <section className="metrics-section">
-          <h2 className="section-title">Anticipación de Reserva</h2>
-          <div className="grid grid-cols-1">
-            <ChartCardSkeleton height={300} type="bar" />
-          </div>
-        </section>
-
-        {/* Airline Occupancy Analysis Skeleton */}
-        <section className="metrics-section">
-          <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
-          <div className="grid grid-cols-2">
-            <ChartCardSkeleton height={300} type="bar" />
-            <DataTableSkeleton rows={6} columns={3} />
-          </div>
-        </section>
       </div>
     );
   }
@@ -450,114 +341,6 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
         </div>
       </section>
 
-      {/* Anticipation Analysis */}
-      <section className="metrics-section">
-        <h2 className="section-title">Anticipación de Reserva</h2>
-        <div className="grid grid-cols-1">
-          <ChartCard 
-            title="Anticipación Promedio de Reserva (Días)"
-            data={anticipationData}
-            type="bar"
-            height={300}
-            valueKey="value"
-            color="#F59E0B"
-          />
-        </div>
-      </section>
-
-      {/* Airline Occupancy Analysis */}
-      <section className="metrics-section">
-        <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
-        <div className="grid grid-cols-2">
-          {allAirlineOccupancyData.length === 0 ? (
-            <ChartCard 
-              title="Ocupación de Aviones por Aerolínea (%)"
-              data={[]}
-              type="bar"
-              height={300}
-              valueKey="value"
-              color="#8B5CF6"
-            />
-          ) : airlineOccupancyData.length > 0 ? (
-            <ChartCard 
-              title="Ocupación de Aviones por Aerolínea (%)"
-              data={airlineOccupancyData}
-              type="bar"
-              height={300}
-              valueKey="value"
-              color="#8B5CF6"
-            />
-          ) : (
-            <div className="chart-card card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
-              <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>Selecciona aerolíneas para mostrar en el gráfico</p>
-            </div>
-          )}
-          <DataTable 
-            title="Detalle de Ocupación por Aerolínea"
-            data={airlineOccupancyTableData}
-            columns={airlineOccupancyColumns}
-            maxRows={10}
-          />
-        </div>
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={selectAllAirlines}
-            disabled={allAirlineOccupancyData.length === 0}
-            style={{
-              padding: '0.5rem 1rem',
-              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#507BD8',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background 0.2s ease',
-              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
-            }}
-            onMouseOver={(e) => {
-              if (allAirlineOccupancyData.length > 0) {
-                e.currentTarget.style.background = '#4169c4';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (allAirlineOccupancyData.length > 0) {
-                e.currentTarget.style.background = '#507BD8';
-              }
-            }}
-          >
-            Seleccionar Todos
-          </button>
-          <button
-            onClick={deselectAllAirlines}
-            disabled={allAirlineOccupancyData.length === 0}
-            style={{
-              padding: '0.5rem 1rem',
-              background: allAirlineOccupancyData.length === 0 ? '#D1D5DB' : '#E5E7EB',
-              color: '#374151',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: allAirlineOccupancyData.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background 0.2s ease',
-              opacity: allAirlineOccupancyData.length === 0 ? 0.6 : 1
-            }}
-            onMouseOver={(e) => {
-              if (allAirlineOccupancyData.length > 0) {
-                e.currentTarget.style.background = '#D1D5DB';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (allAirlineOccupancyData.length > 0) {
-                e.currentTarget.style.background = '#E5E7EB';
-              }
-            }}
-          >
-            Deseleccionar Todos
-          </button>
-        </div>
-      </section>
     </div>
   );
 };

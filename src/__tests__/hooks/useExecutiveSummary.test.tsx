@@ -96,11 +96,13 @@ describe('useExecutiveSummary', () => {
     await waitFor(() => {
       expect(mockedAnalyticsService.getFunnelData).toHaveBeenCalledWith(30);
       expect(mockedAnalyticsService.getAverageFare).toHaveBeenCalledWith(30);
-      expect(mockedAnalyticsService.getMonthlyRevenue).toHaveBeenCalledWith(6);
+      // For 30 days, months = Math.ceil(30/30) = 1
+      expect(mockedAnalyticsService.getMonthlyRevenue).toHaveBeenCalledWith(1);
       expect(mockedAnalyticsService.getLifetimeValue).toHaveBeenCalledWith(10);
       expect(mockedAnalyticsService.getRevenuePerUser).toHaveBeenCalledWith(30, 10);
       expect(mockedAnalyticsService.getPaymentSuccessRate).toHaveBeenCalledWith(30);
-      expect(mockedAnalyticsService.getAnticipation).toHaveBeenCalledWith(90);
+      // Anticipation now uses the same days parameter (30) instead of hardcoded 90
+      expect(mockedAnalyticsService.getAnticipation).toHaveBeenCalledWith(30);
     });
   });
 
@@ -112,8 +114,12 @@ describe('useExecutiveSummary', () => {
     await waitFor(() => {
       expect(mockedAnalyticsService.getFunnelData).toHaveBeenCalledWith(7);
       expect(mockedAnalyticsService.getAverageFare).toHaveBeenCalledWith(7);
+      // For 7 days, months = Math.ceil(7/30) = 1
+      expect(mockedAnalyticsService.getMonthlyRevenue).toHaveBeenCalledWith(1);
       expect(mockedAnalyticsService.getRevenuePerUser).toHaveBeenCalledWith(7, 10);
       expect(mockedAnalyticsService.getPaymentSuccessRate).toHaveBeenCalledWith(7);
+      // Anticipation now uses the same days parameter (7) instead of hardcoded 90
+      expect(mockedAnalyticsService.getAnticipation).toHaveBeenCalledWith(7);
     });
   });
 

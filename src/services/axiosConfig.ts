@@ -12,15 +12,7 @@ const INGEST_BASE_URL = process.env.REACT_APP_INGEST_BASE_URL;
 const ANALYTICS_API_KEY = process.env.REACT_APP_ANALYTICS_API_KEY;
 const INGEST_API_KEY = process.env.REACT_APP_INGEST_API_KEY;
 
-// Debug environment variables in development
-if (process.env.NODE_ENV === "development") {
-  console.log("Environment variables loaded:", {
-    ANALYTICS_BASE_URL: ANALYTICS_BASE_URL ? "✓ Loaded" : "✗ Missing",
-    INGEST_BASE_URL: INGEST_BASE_URL ? "✓ Loaded" : "✗ Missing",
-    ANALYTICS_API_KEY: ANALYTICS_API_KEY ? "✓ Loaded" : "✗ Missing",
-    INGEST_API_KEY: INGEST_API_KEY ? "✓ Loaded" : "✗ Missing",
-  });
-}
+// Environment variables are loaded from process.env
 
 // Validate required environment variables
 if (!ANALYTICS_BASE_URL || !INGEST_BASE_URL || !ANALYTICS_API_KEY || !INGEST_API_KEY) {
@@ -47,6 +39,17 @@ const analyticsApi: AxiosInstance = axios.create({
   },
 });
 
+// Create Analytics API instance with extended timeout for summary endpoint
+// Summary endpoint takes longer to process, so we use 60 seconds timeout
+const analyticsApiExtendedTimeout: AxiosInstance = axios.create({
+  baseURL: ANALYTICS_BASE_URL,
+  timeout: 60000, // 60 seconds
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": ANALYTICS_API_KEY,
+  },
+});
+
 // Create Ingest API instance
 const ingestApi: AxiosInstance = axios.create({
   baseURL: INGEST_BASE_URL,
@@ -58,23 +61,31 @@ const ingestApi: AxiosInstance = axios.create({
 });
 
 // Request interceptor for Analytics API
+const analyticsRequestInterceptor = (config: InternalAxiosRequestConfig) => {
+  // Check token validity before making request
+  const token = getToken();
+  if (token && isTokenExpired(token)) {
+    logoutAndRedirect();
+    return Promise.reject(new Error('Token expired'));
+  }
+  
+  if (config.method === "get") {
+    config.params = {
+      ...config.params,
+      _t: Date.now(),
+    };
+  }
+  return config;
+};
+
 analyticsApi.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Check token validity before making request
-    const token = getToken();
-    if (token && isTokenExpired(token)) {
-      logoutAndRedirect();
-      return Promise.reject(new Error('Token expired'));
-    }
-    
-    if (config.method === "get") {
-      config.params = {
-        ...config.params,
-        _t: Date.now(),
-      };
-    }
-    return config;
-  },
+  analyticsRequestInterceptor,
+  (error: any) => Promise.reject(error)
+);
+
+// Apply same interceptors to extended timeout instance
+analyticsApiExtendedTimeout.interceptors.request.use(
+  analyticsRequestInterceptor,
   (error: any) => Promise.reject(error)
 );
 
@@ -88,9 +99,7 @@ ingestApi.interceptors.request.use(
       return Promise.reject(new Error('Token expired'));
     }
     
-    if (process.env.NODE_ENV === "development") {
-      console.log("Ingesting event:", config.data);
-    }
+    // Event ingestion interceptor
     return config;
   },
   (error: any) => Promise.reject(error)
@@ -98,9 +107,6 @@ ingestApi.interceptors.request.use(
 
 // Response interceptor for both APIs
 const responseInterceptor = (response: AxiosResponse) => {
-  if (process.env.NODE_ENV === "development") {
-    console.log("API Response:", response.config.url, response.data);
-  }
   return response;
 };
 
@@ -125,6 +131,7 @@ const errorInterceptor = (error: any) => {
 
 // Apply interceptors
 analyticsApi.interceptors.response.use(responseInterceptor, errorInterceptor);
+analyticsApiExtendedTimeout.interceptors.response.use(responseInterceptor, errorInterceptor);
 ingestApi.interceptors.response.use(responseInterceptor, errorInterceptor);
 
 // Generic API request wrapper
@@ -141,4 +148,4 @@ export const apiRequest = async <T>(
 };
 
 // Export API instances for direct use
-export { analyticsApi, ingestApi };
+export { analyticsApi, analyticsApiExtendedTimeout, ingestApi };

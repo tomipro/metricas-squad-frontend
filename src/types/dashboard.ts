@@ -98,7 +98,6 @@ export interface OperationsHookReturn {
   funnelData: UseQueryResult<FunnelData>;
   paymentSuccess: UseQueryResult<PaymentSuccessData>;
   cancellationRate: UseQueryResult<CancellationRateData>;
-  popularAirlines: UseQueryResult<PopularAirlinesData>;
   isLoading: boolean;
   isError: boolean;
 }
