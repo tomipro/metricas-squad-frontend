@@ -59,12 +59,19 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
   ];
 
   // Create revenue trend data from monthly revenue with proper typing
-  const revenueTrendData: ChartDataPoint[] = monthlyRevenue?.data?.monthly?.map((month: { ym: string; revenue: number; payments: number }) => ({
-    name: month.ym,
-    value: month.revenue / 1000000, // Convert to millions
-    revenue: month.revenue,
-    payments: month.payments
-  })) || [];
+  // Sort by date (ym) in chronological order (oldest to newest)
+  const revenueTrendData: ChartDataPoint[] = monthlyRevenue?.data?.monthly
+    ?.slice() // Create a copy to avoid mutating the original array
+    .sort((a: { ym: string; revenue: number; payments: number }, b: { ym: string; revenue: number; payments: number }) => {
+      // Sort by date string (YYYY-MM format allows lexicographic sorting)
+      return a.ym.localeCompare(b.ym);
+    })
+    .map((month: { ym: string; revenue: number; payments: number }) => ({
+      name: month.ym,
+      value: month.revenue / 1000000, // Convert to millions
+      revenue: month.revenue,
+      payments: month.payments
+    })) || [];
 
   // Create key engagement metrics
   const engagementKeyMetrics: MetricData[] = [

@@ -15,6 +15,7 @@ interface TabNavigationProps {
   onTabChange: (tab: TabKey) => void;
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
+  onRefresh: () => void;
 }
 
 const tabs: Tab[] = [
@@ -49,7 +50,8 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab, 
   onTabChange, 
   selectedPeriod, 
-  onPeriodChange 
+  onPeriodChange,
+  onRefresh
 }) => {
   // Opciones del filtro de período (días)
   const filterOptions: FilterOption[] = [
@@ -78,6 +80,29 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
           </div>
           
           <div className="tab-filters">
+            <button
+              className="refresh-button"
+              onClick={onRefresh}
+              title="Refrescar datos de la tab activa"
+              aria-label="Refrescar datos"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M2.66667 2.66667V5.33333H5.33333M13.3333 13.3333V10.6667H10.6667M13.3333 6.66667C13.3333 10.3486 10.3486 13.3333 6.66667 13.3333C4.90524 13.3333 3.33333 12.5333 2.33333 11.3333M2.66667 9.33333C2.66667 5.65143 5.65143 2.66667 9.33333 2.66667C11.0948 2.66667 12.6667 3.46667 13.6667 4.66667"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>Refrescar</span>
+            </button>
             <DateFilter 
               selectedMonth={selectedPeriod}
               onMonthChange={onPeriodChange}
