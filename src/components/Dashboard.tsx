@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { TabNavigation, TabKey } from './Common';
 import UserMenu from './Common/UserMenu';
 import ExecutiveSummary from './ExecutiveSummary';
@@ -7,10 +8,13 @@ import Analytics from './Analytics';
 import FleetManagement from './FleetManagement';
 import { Summary } from './Summary';
 import { SearchAnalytics } from './SearchAnalytics';
+import { analyticsKeys } from '../hooks/useAnalytics';
+import { getDaysFromPeriod } from '../utils/periodUtils';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   
   // Helper function to validate and get tab from query param
   const getTabFromParams = (params: URLSearchParams): TabKey => {
@@ -36,6 +40,45 @@ const Dashboard: React.FC = () => {
     params.set('period', period);
     setSearchParams(params, { replace: true });
   };
+
+  // Handler to refresh data for the active tab
+  const handleRefresh = useCallback(() => {
+    const days = getDaysFromPeriod(selectedPeriod);
+    
+    switch (activeTab) {
+      case 'executive':
+        // Invalidate all queries used by ExecutiveSummary
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.funnel(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.averageFare(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.monthlyRevenue(Math.max(1, Math.ceil(days / 30))) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.revenuePerUser(days, 10) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.paymentSuccess(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.anticipation(days) });
+        break;
+      case 'analytics':
+        // Invalidate all queries used by Analytics
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.bookingHours(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.userOrigins(days, 10) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.paymentSuccess(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.anticipation(days) });
+        break;
+      case 'fleet':
+        // Invalidate all queries used by FleetManagement
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.catalogAirlineSummary(days, 'USD') });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.flightsAircraft(days) });
+        break;
+      case 'summary':
+        // Invalidate all queries used by Summary
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.summary() });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.recentActivity(10, days * 24) });
+        break;
+      case 'search':
+        // Invalidate all queries used by SearchAnalytics
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.searchMetrics(days || 14, 10) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.searchCartSummary(days || 14, 10) });
+        break;
+    }
+  }, [activeTab, selectedPeriod, queryClient]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -75,6 +118,7 @@ const Dashboard: React.FC = () => {
         onTabChange={handleTabChange}
         selectedPeriod={selectedPeriod}
         onPeriodChange={handlePeriodChange}
+        onRefresh={handleRefresh}
       />
 
       <main className="dashboard-content">
