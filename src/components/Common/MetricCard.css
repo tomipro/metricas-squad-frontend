@@ -233,6 +233,10 @@
   font-size: 1.5rem;
 }
 
+.metric-card-medium .metric-value {
+  font-size: 2rem;
+}
+
 .metric-card-small .metric-title {
   font-size: 0.625rem;
 }

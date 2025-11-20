@@ -62,7 +62,7 @@ export const analyticsKeys = {
   cancellationRate: (days: number) => [...analyticsKeys.all, 'cancellationRate', days] as const,
   anticipation: (days: number) => [...analyticsKeys.all, 'anticipation', days] as const,
   timeToComplete: (days: number) => [...analyticsKeys.all, 'timeToComplete', days] as const,
-  summary: () => [...analyticsKeys.all, 'summary'] as const,
+  summary: (days: number) => [...analyticsKeys.all, 'summary', days] as const,
   recentActivity: (limit: number, hours: number) => [...analyticsKeys.all, 'recentActivity', limit, hours] as const,
   searchMetrics: (days: number, top: number) => [...analyticsKeys.all, 'searchMetrics', days, top] as const,
   catalogAirlineSummary: (days: number, currency: string) => [...analyticsKeys.all, 'catalogAirlineSummary', days, currency] as const,
@@ -197,10 +197,10 @@ export const useTimeToComplete = (days: number = 7): UseQueryResult<TimeToComple
 // =============================================================================
 
 // Summary
-export const useSummary = (): UseQueryResult<SummaryData> => {
+export const useSummary = (days: number = 30): UseQueryResult<SummaryData> => {
   return useQuery({
-    queryKey: analyticsKeys.summary(),
-    queryFn: getSummary,
+    queryKey: analyticsKeys.summary(days),
+    queryFn: () => getSummary(days),
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
   });

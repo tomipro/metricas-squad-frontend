@@ -29,6 +29,17 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
   } = useExecutiveSummary(days);
 
   // Transform API data to match component expectations with proper typing
+  // Calculate average revenue per user
+  const calculateAverageRevenuePerUser = () => {
+    const users = revenuePerUser?.data?.revenue_per_user;
+    if (!users || users.length === 0) return 0;
+    
+    const totalRevenue = users.reduce((sum, user) => sum + user.revenue, 0);
+    const averageRevenue = totalRevenue / users.length;
+    
+    return averageRevenue;
+  };
+
   const realTimeMetrics: MetricData[] = [
     {
       title: "Valor Promedio de Reserva",
@@ -36,8 +47,8 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
       change: 0
     },
     {
-      title: "Ingresos por Usuario",
-      value: `$${revenuePerUser?.data?.revenue_per_user?.[0]?.revenue?.toFixed(0) || "0"}`,
+      title: "Ingresos Promedios por Usuario",
+      value: `$${calculateAverageRevenuePerUser().toFixed(0)}`,
       change: 0
     }
   ];
@@ -129,7 +140,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
   // Key metric card (main one)
   const keyRevenueMetric: MetricData = {
     title: "Ingresos Mensuales",
-    value: `$${monthlyRevenue?.data?.monthly?.reduce((sum: number, month: { revenue: number }) => sum + month.revenue, 0)?.toFixed(1) || "0"}M`,
+    value: `$${monthlyRevenue?.data?.monthly?.reduce((sum: number, month: { revenue: number }) => sum + month.revenue, 0)?.toFixed(0) || "0"}`,
     change: 0
   };
 
@@ -206,7 +217,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
           <MetricCard 
             metric={keyRevenueMetric}
             variant="featured"
-            size="large"
+            size="medium"
           />
           <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
             <MetricCard 
@@ -227,7 +238,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ selectedPeriod }) =
       <section className="metrics-section">
         <div className="grid grid-cols-1">
           <ChartCard 
-            title="Tendencia de Ingresos Mensuales ($M)"
+            title="Tendencia de Ingresos Mensuales"
             data={revenueTrendData}
             type="line"
             height={400}

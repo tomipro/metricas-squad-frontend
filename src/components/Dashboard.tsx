@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
         break;
       case 'summary':
         // Invalidate all queries used by Summary
-        queryClient.invalidateQueries({ queryKey: analyticsKeys.summary() });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.summary(days) });
         queryClient.invalidateQueries({ queryKey: analyticsKeys.recentActivity(10, days * 24) });
         break;
       case 'search':

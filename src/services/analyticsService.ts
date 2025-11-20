@@ -319,10 +319,11 @@ export const getTimeToComplete = (days: number = 7): Promise<TimeToComplete> =>
 // =============================================================================
 
 // Summary - Uses extended timeout instance (60 seconds) as this endpoint takes longer to process
-export const getSummary = (): Promise<SummaryData> =>
+export const getSummary = (days: number = 30): Promise<SummaryData> =>
   apiRequest<SummaryData>(analyticsApiExtendedTimeout, {
     method: 'GET',
     url: '/analytics/summary',
+    params: { days },
   });
 
 // Recent Activity

@@ -13,16 +13,21 @@ import '../../components/LoadingStates.css';
 interface SummaryProps extends ComponentProps {}
 
 const Summary: React.FC<SummaryProps> = ({ selectedPeriod }) => {
-  // Convert selectedPeriod to hours for recent activity
+  // Convert selectedPeriod to days and hours
+  const getDaysFromPeriod = (period: string): number => {
+    return parseInt(period, 10) || 30;
+  };
+
   const getHoursFromPeriod = (period: string): number => {
     const days = parseInt(period, 10) || 30;
     return days * 24; // Convert days to hours
   };
 
+  const days = getDaysFromPeriod(selectedPeriod);
   const hours = getHoursFromPeriod(selectedPeriod);
 
   // Use TanStack Query hooks for real-time data
-  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useSummary();
+  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useSummary(days);
   const { data: recentActivityData, isLoading: activityLoading, isError: activityError } = useRecentActivity(10, hours);
   
   const isLoading = summaryLoading || activityLoading;
@@ -43,11 +48,6 @@ const Summary: React.FC<SummaryProps> = ({ selectedPeriod }) => {
     {
       title: "Ingresos Totales",
       value: `USD ${summaryData?.summary?.total_revenue?.toLocaleString() || "0"}`,
-      change: 0
-    },
-    {
-      title: "Tasa de Validación",
-      value: `${summaryData?.summary?.validation_rate?.toFixed(1) || "0"}%`,
       change: 0
     }
   ];
@@ -78,7 +78,7 @@ const Summary: React.FC<SummaryProps> = ({ selectedPeriod }) => {
         <section className="metrics-section">
           <h2 className="section-title">Resumen General</h2>
           <div className="metrics-grid">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {Array.from({ length: 3 }).map((_, index) => (
               <MetricCardSkeleton key={index} />
             ))}
           </div>
