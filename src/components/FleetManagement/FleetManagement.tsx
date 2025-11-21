@@ -9,7 +9,7 @@ import {
   TableColumn,
   TableData
 } from '../../types/dashboard';
-import { resolveAirlineInfo, resolveAirlineName } from '../../utils/airlineName';
+import { resolveAirlineInfo } from '../../utils/airlineName';
 import '../../components/LoadingStates.css';
 
 import { getDaysFromPeriod } from '../../utils/periodUtils';
@@ -26,11 +26,6 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   
   const isLoading = catalogLoading || capacityLoading;
   const isError = catalogError || capacityError;
-
-  // Helper function to get airline name from code (memoized)
-  const getAirlineName = useCallback((airlineCode: string): string => {
-    return resolveAirlineName(airlineCode);
-  }, []);
 
   const normalizeAircraftType = (type: string): string => {
     const cleaned = type?.trim();
