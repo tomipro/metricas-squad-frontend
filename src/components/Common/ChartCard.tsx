@@ -255,10 +255,10 @@ const ChartCard: React.FC<ChartCardProps> = ({
                 }}
                 formatter={(value: any, name: string, props: any) => {
                   const percent = ((value as number) / total) * 100;
-                  const countryName = props.payload[nameKey as keyof ChartDataPoint] || name;
+                  const label = props.payload[nameKey as keyof ChartDataPoint] || name;
                   return [
-                    `${value.toLocaleString('es-ES')} usuarios (${percent.toFixed(1)}%)`,
-                    countryName
+                    `${value.toLocaleString('es-ES')} (${percent.toFixed(1)}%)`,
+                    label
                   ];
                 }}
               />

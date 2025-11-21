@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { useSearchMetrics, useSearchCartSummary } from '../../hooks/useAnalytics';
+import { useSearchMetrics, useSearchCartSummary, useFunnelData } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   MetricData, 
@@ -22,9 +22,10 @@ const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => 
   // Use TanStack Query hooks for real-time data
   const { data: searchMetricsData, isLoading: searchLoading, isError: searchError } = useSearchMetrics(days, 10);
   const { data: cartSummaryData, isLoading: cartLoading, isError: cartError } = useSearchCartSummary(days, 10);
+  const { data: funnelData, isLoading: funnelLoading, isError: funnelError } = useFunnelData(days);
   
-  const isLoading = searchLoading || cartLoading;
-  const isError = searchError || cartError;
+  const isLoading = searchLoading || cartLoading || funnelLoading;
+  const isError = searchError || cartError || funnelError;
 
   // Calculate average results from routes with valid data
   const avgResults = useMemo(() => {
@@ -43,7 +44,7 @@ const SearchAnalytics: React.FC<SearchAnalyticsProps> = ({ selectedPeriod }) => 
   const searchMetrics: MetricData[] = [
     {
       title: "Total de Búsquedas",
-      value: searchMetricsData?.total_searches?.toLocaleString() || "0",
+      value: funnelData?.searches?.toLocaleString('es-ES') || searchMetricsData?.total_searches?.toLocaleString() || "0",
       change: 0
     },
     {

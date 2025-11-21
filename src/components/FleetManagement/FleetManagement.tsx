@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { useCatalogAirlineSummary, useFlightsAircraft } from '../../hooks/useAnalytics';
+import { useCatalogAirlineSummary, useAirlinesCapacity } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   MetricData, 
@@ -9,7 +9,7 @@ import {
   TableColumn,
   TableData
 } from '../../types/dashboard';
-import airlineNames from '../../data/airlineNames.json';
+import { resolveAirlineInfo, resolveAirlineName } from '../../utils/airlineName';
 import '../../components/LoadingStates.css';
 
 import { getDaysFromPeriod } from '../../utils/periodUtils';
@@ -22,67 +22,205 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   
   // Use TanStack Query hooks for real-time data
   const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
-  const { data: flightsAircraftData, isLoading: aircraftLoading, isError: aircraftError } = useFlightsAircraft(days);
+  const { data: airlinesCapacityData, isLoading: capacityLoading, isError: capacityError } = useAirlinesCapacity(days);
   
-  const isLoading = catalogLoading || aircraftLoading;
-  const isError = catalogError || aircraftError;
+  const isLoading = catalogLoading || capacityLoading;
+  const isError = catalogError || capacityError;
 
   // Helper function to get airline name from code (memoized)
   const getAirlineName = useCallback((airlineCode: string): string => {
-    return (airlineNames as Record<string, string>)[airlineCode] || airlineCode;
+    return resolveAirlineName(airlineCode);
   }, []);
+
+  const normalizeAircraftType = (type: string): string => {
+    const cleaned = type?.trim();
+    if (!cleaned) return '';
+    const upper = cleaned.toUpperCase();
+    if (upper === 'BOEING 737') return 'B737';
+    if (upper === 'E109') return 'E190';
+    return upper;
+  };
+
+  // Aggregate airlines by resolved airline (prefix) to avoid duplicated rows per flight code
+  const aggregatedAirlines = useMemo(() => {
+    if (!airlinesCapacityData?.airlines) {
+      return [];
+    }
+
+    const map = new Map<string, {
+      airlineCode: string;
+      airlineName: string;
+      flights: number;
+      totalCapacity: number;
+      seatsSold: number;
+      aircraftTypes: Set<string>;
+    }>();
+
+    airlinesCapacityData.airlines.forEach((airline) => {
+      const { code, name } = resolveAirlineInfo(airline.airline);
+      const key = code || name;
+
+      const current = map.get(key) || {
+        airlineCode: code,
+        airlineName: name,
+        flights: 0,
+        totalCapacity: 0,
+        seatsSold: 0,
+        aircraftTypes: new Set<string>(),
+      };
+
+      current.flights += airline.flights ?? 0;
+      current.totalCapacity += airline.total_capacity ?? 0;
+      current.seatsSold += airline.seats_sold ?? 0;
+
+      if (airline.aircraft_types) {
+        airline.aircraft_types
+          .split(',')
+          .map(type => normalizeAircraftType(type))
+          .filter(Boolean)
+          .forEach(type => current.aircraftTypes.add(type));
+      }
+
+      map.set(key, current);
+    });
+
+    return Array.from(map.values()).map(item => ({
+      airlineCode: item.airlineCode,
+      airlineName: item.airlineName,
+      flights: item.flights,
+      totalCapacity: item.totalCapacity,
+      seatsSold: item.seatsSold,
+      occupancyPercent: item.totalCapacity > 0 ? Math.round((item.seatsSold / item.totalCapacity) * 10000) / 100 : 0,
+      aircraftTypes: Array.from(item.aircraftTypes).join(', ') || 'N/D'
+    }));
+  }, [airlinesCapacityData]);
+
+  // Aggregate catalog airlines by resolved name to avoid duplicate rows per flight code
+  const aggregatedCatalogAirlines = useMemo(() => {
+    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
+      return [];
+    }
+    const map = new Map<string, { airlineName: string; airlineCodes: Set<string>; flights: number; revenue: number; avgPrice: number }>();
+
+    catalogAirlineData.airlines.forEach((airline: { airline: string; flights: number; avg_price: number }) => {
+      const { name } = resolveAirlineInfo(airline.airline);
+      const key = name || airline.airline;
+      const current = map.get(key) || { airlineName: name, airlineCodes: new Set<string>(), flights: 0, revenue: 0, avgPrice: 0 };
+      current.airlineCodes.add(airline.airline);
+      current.flights += airline.flights || 0;
+      current.revenue += (airline.flights || 0) * (airline.avg_price || 0);
+      map.set(key, current);
+    });
+
+    return Array.from(map.values()).map(item => ({
+      airlineName: item.airlineName,
+      airlineCodes: Array.from(item.airlineCodes).join(', '),
+      flights: item.flights,
+      avgPrice: item.flights > 0 ? item.revenue / item.flights : 0,
+      revenue: item.revenue
+    }));
+  }, [catalogAirlineData]);
+
+  // Merge catalog pricing info onto capacity aggregation to keep counts consistent
+  const mergedAirlineMetrics = useMemo(() => {
+    const catalogMap = new Map(
+      aggregatedCatalogAirlines.map(item => [item.airlineName, item])
+    );
+
+    const merged = aggregatedAirlines.map(cap => {
+      const catalog = catalogMap.get(cap.airlineName);
+      const flights = cap.flights || catalog?.flights || 0;
+      const avgPrice = catalog?.avgPrice ?? 0;
+      const revenue = avgPrice * flights;
+
+      return {
+        airlineName: cap.airlineName,
+        airlineCodes: catalog?.airlineCodes || cap.airlineCode,
+        flights,
+        avgPrice,
+        revenue,
+        totalCapacity: cap.totalCapacity ?? 0,
+        seatsSold: cap.seatsSold ?? 0,
+        occupancyPercent: cap.occupancyPercent ?? 0,
+        aircraftTypes: cap.aircraftTypes,
+      };
+    });
+
+    // Include any catalog-only airlines not present in capacity (unlikely but safe)
+    aggregatedCatalogAirlines.forEach(catalog => {
+      if (!merged.find(item => item.airlineName === catalog.airlineName)) {
+        merged.push({
+          airlineName: catalog.airlineName,
+          airlineCodes: catalog.airlineCodes,
+          flights: catalog.flights,
+          avgPrice: catalog.avgPrice,
+          revenue: catalog.revenue,
+          totalCapacity: 0,
+          seatsSold: 0,
+          occupancyPercent: 0,
+          aircraftTypes: 'N/D',
+        });
+      }
+    });
+
+    return merged;
+  }, [aggregatedAirlines, aggregatedCatalogAirlines]);
+
+  const topAirlineByCapacity = useMemo(() => {
+    if (!aggregatedAirlines.length) return null;
+    return [...aggregatedAirlines].sort((a, b) => {
+      const capDiff = (b.totalCapacity ?? 0) - (a.totalCapacity ?? 0);
+      if (capDiff !== 0) return capDiff;
+      return (b.seatsSold ?? 0) - (a.seatsSold ?? 0);
+    })[0];
+  }, [aggregatedAirlines]);
 
   // Create fleet metrics from API data with proper typing
   const fleetMetrics: MetricData[] = [
     {
       title: "Total de Aerolíneas",
-      value: catalogAirlineData?.airlines?.length?.toString() || "0",
+      value: mergedAirlineMetrics.length.toString() || "0",
       change: 0
     },
     {
       title: "Total de Vuelos",
-      value: catalogAirlineData?.total_flights?.toLocaleString() || "0",
+      value: mergedAirlineMetrics.reduce((sum, item) => sum + (item.flights || 0), 0).toLocaleString(),
       change: 0
     },
     {
-      title: "Ingresos Totales",
-      value: `${catalogAirlineData?.currency || 'USD'} ${catalogAirlineData?.airlines?.reduce((sum: number, airline: { flights: number; avg_price: number }) => sum + (airline.flights * airline.avg_price), 0)?.toLocaleString() || "0"}`,
+      title: "Ingresos Potenciales",
+      value: `${catalogAirlineData?.currency || 'USD'} ${mergedAirlineMetrics.reduce((sum, airline) => {
+        return sum + (airline.totalCapacity ?? 0) * (airline.avgPrice ?? 0);
+      }, 0).toLocaleString()}`,
       change: 0
     },
     {
       title: "Aerolínea Principal",
-      value: catalogAirlineData?.airlines?.[0] ? getAirlineName(catalogAirlineData.airlines[0].airline) : "N/A",
+      value: topAirlineByCapacity?.airlineName || "N/A",
       change: 0
     }
   ];
 
-  // Create popular airlines chart data from catalogAirlineData with proper typing
+  // Create popular airlines chart data from aggregated catalogAirlines
   const popularAirlinesChartData: ChartDataPoint[] = useMemo(() => {
-    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
-      return [];
-    }
-    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => ({
-      name: getAirlineName(airline.airline),
+    return mergedAirlineMetrics.map((airline) => ({
+      name: airline.airlineName,
       value: airline.flights,
-      avgPrice: airline.avg_price,
-      count: airline.flights,
-      airlineCode: airline.airline
+      avgPrice: airline.avgPrice,
+      count: airline.flights
     }));
-  }, [catalogAirlineData, getAirlineName]);
+  }, [mergedAirlineMetrics]);
 
-  // Create airline details table data from catalogAirlineData with proper typing
+  // Create airline details table data from aggregated catalogAirlines
   const airlineDetailsData: TableData[] = useMemo(() => {
-    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0) {
-      return [];
-    }
-    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => ({
-      airlineCode: airline.airline,
-      airlineName: getAirlineName(airline.airline),
+    return mergedAirlineMetrics.map((airline) => ({
+      airlineCode: airline.airlineCodes || airline.airlineName,
+      airlineName: airline.airlineName,
       bookings: airline.flights,
-      avgPrice: airline.avg_price,
-      revenue: airline.flights * airline.avg_price
+      avgPrice: airline.avgPrice,
+      revenue: airline.revenue
     }));
-  }, [catalogAirlineData, getAirlineName]);
+  }, [mergedAirlineMetrics]);
 
   // Create columns for airline details table with proper typing
   const airlineColumns: TableColumn[] = [
@@ -93,49 +231,64 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
     { key: 'revenue', title: 'Ingresos', render: (value: number) => `$${value.toLocaleString()}` }
   ];
 
-  // Create aircraft data from API
-  const aircraftData: TableData[] = flightsAircraftData?.aircraft?.map((aircraft: any) => ({
-    airline_brand: aircraft.airlineBrand,
-    aircraft_id: aircraft.aircraftId,
-    capacity: aircraft.capacity,
-    updates: aircraft.updates
-  })) || [];
+  // Create airline capacity data from new endpoint
+  const airlineCapacityChartData: ChartDataPoint[] = useMemo(() => {
+    return [...aggregatedAirlines]
+      .sort((a, b) => b.totalCapacity - a.totalCapacity)
+      .map((airline) => ({
+        name: airline.airlineName,
+        value: airline.totalCapacity ?? 0,
+        flights: airline.flights ?? 0,
+        seatsSold: airline.seatsSold ?? 0,
+        occupancy: airline.occupancyPercent ?? 0,
+        aircraftTypes: airline.aircraftTypes
+      }));
+  }, [aggregatedAirlines]);
 
-  // Create columns for aircraft table
-  const aircraftColumns: TableColumn[] = [
-    { key: 'airline_brand', title: 'Aerolínea' },
-    { key: 'aircraft_id', title: 'Modelo de Aeronave' },
-    { key: 'capacity', title: 'Capacidad', render: (value: number) => value.toLocaleString() },
-    { key: 'updates', title: 'Actualizaciones', render: (value: number) => value.toLocaleString() }
+  const capacityChartHeight = Math.max(
+    400,
+    Math.min(600, Math.max(1, airlineCapacityChartData.length) * 60)
+  );
+
+  // Table for capacity and aircraft mix per airline
+  const airlineCapacityTableData: TableData[] = useMemo(() => {
+    return aggregatedAirlines.map((airline) => ({
+      airlineName: airline.airlineName,
+      airlineCode: airline.airlineCode,
+      flights: airline.flights,
+      totalCapacity: airline.totalCapacity ?? 0,
+      aircraftTypes: airline.aircraftTypes,
+      seatsSold: airline.seatsSold ?? 0,
+      occupancyPercent: airline.occupancyPercent ?? 0
+    }));
+  }, [aggregatedAirlines]);
+
+  // Columns for airline capacity table
+  const airlineCapacityColumns: TableColumn[] = [
+    { key: 'airlineName', title: 'Aerolínea' },
+    { key: 'airlineCode', title: 'Código' },
+    { key: 'flights', title: 'Vuelos', render: (value: number | null) => (value ?? 0).toLocaleString() },
+    { key: 'totalCapacity', title: 'Capacidad Publicada', render: (value: number | null) => (value ?? 0).toLocaleString() },
+    { key: 'aircraftTypes', title: 'Modelos' }
   ];
 
-  // Create aircraft chart data by airline
-  const aircraftChartData: ChartDataPoint[] = flightsAircraftData?.aircraft?.slice(0, 10).map((aircraft: any) => ({
-    name: `${aircraft.airlineBrand} - ${aircraft.aircraftId}`,
-    value: aircraft.capacity,
-    updates: aircraft.updates
-  })) || [];
-
-  // Create airline occupancy data from API - calculate percentage based on flights
+  // Create airline occupancy data from capacity endpoint (aggregated by airline)
   const allAirlineOccupancyData: ChartDataPoint[] = useMemo(() => {
-    if (!catalogAirlineData?.airlines || catalogAirlineData.airlines.length === 0 || !catalogAirlineData.total_flights) {
+    if (aggregatedAirlines.length === 0) {
       return [];
     }
-    const totalFlights = catalogAirlineData.total_flights;
-    return catalogAirlineData.airlines.map((airline: { airline: string; flights: number; avg_price: number }) => {
-      const percentage = totalFlights > 0 ? (airline.flights / totalFlights) * 100 : 0;
-      const airlineName = getAirlineName(airline.airline);
-      return {
-        name: `${airlineName} (${airline.airline})`,
-        value: percentage,
-        percentage: percentage,
-        airlineCode: airline.airline,
-        airlineName: airlineName,
-        flights: airline.flights,
-        avgPrice: airline.avg_price
-      };
-    });
-  }, [catalogAirlineData, getAirlineName]);
+    return aggregatedAirlines.map((airline) => ({
+      name: airline.airlineName,
+      value: airline.occupancyPercent ?? 0,
+      percentage: airline.occupancyPercent ?? 0,
+      airlineCode: airline.airlineCode,
+      airlineName: airline.airlineName,
+      flights: airline.flights ?? 0,
+      seatsSold: airline.seatsSold ?? 0,
+      totalCapacity: airline.totalCapacity ?? 0,
+      aircraftTypes: airline.aircraftTypes
+    }));
+  }, [aggregatedAirlines]);
 
   // Initialize selected airlines with all airlines on first render
   const [selectedAirlines, setSelectedAirlines] = useState<Set<string>>(
@@ -161,7 +314,9 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   const airlineOccupancyTableData: TableData[] = useMemo(() => {
     return allAirlineOccupancyData.map(item => ({
       name: item.name,
-      value: item.value,
+      value: item.value ?? 0,
+      seatsSold: item.seatsSold || 0,
+      totalCapacity: item.totalCapacity || 0,
       selected: selectedAirlines.has(item.name)
     }));
   }, [selectedAirlines, allAirlineOccupancyData]);
@@ -204,7 +359,9 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
       )
     },
     { key: 'name', title: 'Aerolínea' },
-    { key: 'value', title: 'Ocupación (%)', render: (value: number) => `${value.toFixed(1)}%` }
+    { key: 'value', title: 'Ocupación (%)', render: (value: number | null) => `${(value ?? 0).toFixed(2)}%` },
+    { key: 'seatsSold', title: 'Asientos Vendidos', render: (value: number | null) => (value ?? 0).toLocaleString() },
+    { key: 'totalCapacity', title: 'Capacidad Publicada', render: (value: number | null) => (value ?? 0).toLocaleString() }
   ], [toggleAirline]);
 
   // Show loading state with skeleton
@@ -248,7 +405,7 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
           <h2 className="section-title">Porcentaje de Ocupación por Aerolínea</h2>
           <div className="grid grid-cols-2">
             <ChartCardSkeleton height={300} type="bar" />
-            <DataTableSkeleton rows={6} columns={3} />
+            <DataTableSkeleton rows={6} columns={5} />
           </div>
         </section>
       </div>
@@ -326,9 +483,9 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
         <div className="grid grid-cols-1">
           <ChartCard 
             title="Capacidad de Aeronaves por Aerolínea"
-            data={aircraftChartData}
+            data={airlineCapacityChartData}
             type="barHorizontal"
-            height={Math.max(400, Math.min(600, aircraftChartData.length * 50))}
+            height={capacityChartHeight}
             valueKey="value"
             nameKey="name"
             color="#507BD8"
@@ -342,8 +499,8 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
         <div className="grid grid-cols-1">
           <DataTable 
             title="Información de Aeronaves por Aerolínea"
-            data={aircraftData}
-            columns={aircraftColumns}
+            data={airlineCapacityTableData}
+            columns={airlineCapacityColumns}
             maxRows={15}
           />
         </div>

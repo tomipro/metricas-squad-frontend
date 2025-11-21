@@ -19,6 +19,7 @@ import {
   getCatalogAirlineSummary,
   getSearchCartSummary,
   getFlightsAircraft,
+  getAirlinesCapacity,
 } from '../services/analyticsService';
 import {
   FunnelData,
@@ -39,6 +40,7 @@ import {
   CatalogAirlineSummary,
   SearchCartSummary,
   FlightsAircraft,
+  AirlinesCapacity,
   OperationsHookReturn,
   AnalyticsHookReturn,
 } from '../types/dashboard';
@@ -68,6 +70,7 @@ export const analyticsKeys = {
   catalogAirlineSummary: (days: number, currency: string) => [...analyticsKeys.all, 'catalogAirlineSummary', days, currency] as const,
   searchCartSummary: (days: number, top: number) => [...analyticsKeys.all, 'searchCartSummary', days, top] as const,
   flightsAircraft: (days: number) => [...analyticsKeys.all, 'flightsAircraft', days] as const,
+  airlinesCapacity: (days: number) => [...analyticsKeys.all, 'airlinesCapacity', days] as const,
 };
 
 // =============================================================================
@@ -248,6 +251,15 @@ export const useFlightsAircraft = (days: number = 30): UseQueryResult<FlightsAir
   return useQuery({
     queryKey: analyticsKeys.flightsAircraft(days),
     queryFn: () => getFlightsAircraft(days),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Airlines Capacity
+export const useAirlinesCapacity = (days: number = 7): UseQueryResult<AirlinesCapacity> => {
+  return useQuery({
+    queryKey: analyticsKeys.airlinesCapacity(days),
+    queryFn: () => getAirlinesCapacity(days),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

@@ -45,6 +45,7 @@ import type {
   CatalogAirlineSummary,
   SearchCartSummary,
   FlightsAircraft,
+  AirlinesCapacity,
 } from '../services/analyticsService';
 
 // Re-export with consistent naming
@@ -66,6 +67,7 @@ export type { SearchMetrics };
 export type { CatalogAirlineSummary };
 export type { SearchCartSummary };
 export type { FlightsAircraft };
+export type { AirlinesCapacity };
 
 // Component Props Types
 export interface ComponentProps {

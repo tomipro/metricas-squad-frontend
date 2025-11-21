@@ -207,6 +207,18 @@ export interface FlightsAircraft {
   }>;
 }
 
+export interface AirlinesCapacity {
+  period_days: number;
+  airlines: Array<{
+    airline: string;
+    flights: number;
+    total_capacity: number;
+    seats_sold: number;
+    occupancy_percent: number;
+    aircraft_types: string;
+  }>;
+}
+
 // =============================================================================
 // ANALYTICS API FUNCTIONS
 // =============================================================================
@@ -363,5 +375,13 @@ export const getFlightsAircraft = (days: number = 30): Promise<FlightsAircraft> 
   apiRequest<FlightsAircraft>(analyticsApi, {
     method: 'GET',
     url: '/analytics/flights/aircraft',
+    params: { days },
+  });
+
+// Airlines Capacity
+export const getAirlinesCapacity = (days: number = 7): Promise<AirlinesCapacity> =>
+  apiRequest<AirlinesCapacity>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/airlines/capacity',
     params: { days },
   });
