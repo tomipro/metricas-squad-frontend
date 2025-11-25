@@ -113,6 +113,12 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
       value: paymentSuccess?.data?.rejected || 0,
       count: paymentSuccess?.data?.rejected || 0,
       color: "#ff0000" // Rojo
+    },
+    {
+      name: "Reembolso",
+      value: paymentSuccess?.data?.refunded || 0,
+      count: paymentSuccess?.data?.refunded || 0,
+      color: "#F39C12" // Naranja
     }
   ];
 
