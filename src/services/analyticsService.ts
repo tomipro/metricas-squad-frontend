@@ -89,6 +89,7 @@ export interface PaymentSuccess {
   period_days: number;
   approved: number;
   rejected: number;
+  refunded: number;
   success_rate_percent: number;
 }
 
