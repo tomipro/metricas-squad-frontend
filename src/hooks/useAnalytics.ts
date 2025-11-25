@@ -20,6 +20,7 @@ import {
   getSearchCartSummary,
   getFlightsAircraft,
   getAirlinesCapacity,
+  getFlightUpdates,
 } from '../services/analyticsService';
 import {
   FunnelData,
@@ -43,6 +44,7 @@ import {
   AirlinesCapacity,
   OperationsHookReturn,
   AnalyticsHookReturn,
+  FlightUpdates,
 } from '../types/dashboard';
 
 // =============================================================================
@@ -71,6 +73,7 @@ export const analyticsKeys = {
   searchCartSummary: (days: number, top: number) => [...analyticsKeys.all, 'searchCartSummary', days, top] as const,
   flightsAircraft: (days: number) => [...analyticsKeys.all, 'flightsAircraft', days] as const,
   airlinesCapacity: (days: number) => [...analyticsKeys.all, 'airlinesCapacity', days] as const,
+  flightUpdates: (days: number) => [...analyticsKeys.all, 'flightUpdates', days] as const,
 };
 
 // =============================================================================
@@ -260,6 +263,15 @@ export const useAirlinesCapacity = (days: number = 7): UseQueryResult<AirlinesCa
   return useQuery({
     queryKey: analyticsKeys.airlinesCapacity(days),
     queryFn: () => getAirlinesCapacity(days),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Flight Updates by status
+export const useFlightUpdates = (days: number = 7): UseQueryResult<FlightUpdates> => {
+  return useQuery({
+    queryKey: analyticsKeys.flightUpdates(days),
+    queryFn: () => getFlightUpdates(days),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

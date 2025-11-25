@@ -37,6 +37,39 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
     count: item.count
   })) || [];
 
+  const normalizeCountryKey = (country: string): string => {
+    return (country || '')
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  };
+
+  const aggregatedUserOrigins = useMemo(() => {
+    const raw = userOrigins?.data?.user_origins || [];
+    const map = new Map<string, { country: string; users: number }>();
+
+    raw.forEach((item: { country: string; users: number }) => {
+      const name = item?.country?.trim() || 'N/D';
+      const key = normalizeCountryKey(name);
+      const users = item?.users || 0;
+      const current = map.get(key);
+
+      if (current) {
+        current.users += users;
+        // Prefer the longest (often accented/proper) name as display
+        if (name.length > current.country.length) {
+          current.country = name;
+        }
+        map.set(key, current);
+      } else {
+        map.set(key, { country: name, users });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.users - a.users);
+  }, [userOrigins]);
+
   // Helper function to group small countries into "Otros"
   const groupSmallCountries = (data: Array<{ country: string; users: number }>, topN: number = 8): ChartDataPoint[] => {
     if (!data || data.length === 0) return [];
@@ -74,11 +107,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
   // Create user origins data from API with proper typing and grouping
   const allUserOriginsData: ChartDataPoint[] = useMemo(() => {
-    return groupSmallCountries(
-      userOrigins?.data?.user_origins || [],
-      8
-    );
-  }, [userOrigins]);
+    return groupSmallCountries(aggregatedUserOrigins, 8);
+  }, [aggregatedUserOrigins]);
 
   // Initialize selected origins with all origins on first render
   const [selectedOrigins, setSelectedOrigins] = useState<Set<string>>(
@@ -87,18 +117,22 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
   // Update selected origins when data is loaded
   useEffect(() => {
-    if (allUserOriginsData.length > 0 && selectedOrigins.size === 0) {
-      setSelectedOrigins(new Set(allUserOriginsData.map(item => item.name)));
+    if (aggregatedUserOrigins.length > 0 && selectedOrigins.size === 0) {
+      setSelectedOrigins(new Set(aggregatedUserOrigins.map(item => item.country)));
     }
-  }, [allUserOriginsData, selectedOrigins.size]);
+  }, [aggregatedUserOrigins, selectedOrigins.size]);
 
   // Filter user origins data based on selection
-  const userOriginsData: ChartDataPoint[] = useMemo(() => {
+  const filteredOrigins = useMemo(() => {
     if (selectedOrigins.size === 0) {
       return [];
     }
-    return allUserOriginsData.filter(item => selectedOrigins.has(item.name));
-  }, [selectedOrigins, allUserOriginsData]);
+    return aggregatedUserOrigins.filter(item => selectedOrigins.has(item.country));
+  }, [selectedOrigins, aggregatedUserOrigins]);
+
+  const userOriginsData: ChartDataPoint[] = useMemo(() => {
+    return groupSmallCountries(filteredOrigins, 8);
+  }, [filteredOrigins]);
 
   // Create payment success data from API with proper typing
   const paymentSuccessData: ChartDataPoint[] = [
@@ -140,8 +174,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
   // Select all origins (memoized)
   const selectAllOrigins = useCallback(() => {
-    setSelectedOrigins(new Set(allUserOriginsData.map(item => item.name)));
-  }, [allUserOriginsData]);
+    setSelectedOrigins(new Set(aggregatedUserOrigins.map(item => item.country)));
+  }, [aggregatedUserOrigins]);
 
   // Deselect all origins (memoized)
   const deselectAllOrigins = useCallback(() => {
@@ -150,13 +184,13 @@ const Analytics: React.FC<AnalyticsProps> = ({ selectedPeriod }) => {
 
   // Create table data with selection state for user origins
   const userOriginsTableData: TableData[] = useMemo(() => {
-    return allUserOriginsData.map(item => ({
-      country: item.country || item.name,
-      users: item.users || item.value,
-      name: item.name,
-      selected: selectedOrigins.has(item.name)
+    return aggregatedUserOrigins.map(item => ({
+      country: item.country,
+      users: item.users,
+      name: item.country,
+      selected: selectedOrigins.has(item.country)
     }));
-  }, [selectedOrigins, allUserOriginsData]);
+  }, [selectedOrigins, aggregatedUserOrigins]);
 
   // Create columns for user origins table with proper typing (with checkbox)
   const userOriginsColumns: TableColumn[] = useMemo(() => [

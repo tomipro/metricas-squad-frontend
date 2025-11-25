@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { MetricCard, ChartCard, DataTable } from '../Common';
 import { MetricCardSkeleton, ChartCardSkeleton, DataTableSkeleton } from '../Skeletons';
-import { useCatalogAirlineSummary, useAirlinesCapacity } from '../../hooks/useAnalytics';
+import { useCatalogAirlineSummary, useAirlinesCapacity, useFlightUpdates } from '../../hooks/useAnalytics';
 import { 
   ComponentProps, 
   MetricData, 
@@ -23,9 +23,57 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
   // Use TanStack Query hooks for real-time data
   const { data: catalogAirlineData, isLoading: catalogLoading, isError: catalogError } = useCatalogAirlineSummary(days, 'USD');
   const { data: airlinesCapacityData, isLoading: capacityLoading, isError: capacityError } = useAirlinesCapacity(days);
+  const { data: flightUpdatesData, isLoading: updatesLoading, isError: updatesError } = useFlightUpdates(days);
   
   const isLoading = catalogLoading || capacityLoading;
   const isError = catalogError || capacityError;
+
+  const formatStatusLabel = useCallback((status: string): string => {
+    const normalized = status?.trim().toUpperCase() || '';
+    if (normalized === 'CANCELLED' || normalized === 'CANCELED') return 'Vuelos cancelados';
+    const labels: Record<string, string> = {
+      ON_TIME: 'En horario',
+      DELAYED: 'Demorados',
+      BOARDING: 'En embarque',
+      SCHEDULED: 'Programados',
+      DIVERTED: 'Desviados',
+      ACTIVE: 'En vuelo'
+    };
+    return labels[normalized] || normalized.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  }, []);
+
+  const formatDateTime = useCallback((value?: string | null): string => {
+    if (!value) return 'N/D';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'N/D';
+    return parsed.toLocaleString('es-ES');
+  }, []);
+
+  const parseCount = (value: any): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getStatusColor = useCallback((status: string, label: string, isCancelled: boolean): string => {
+    const normalizedStatus = status.toUpperCase();
+    const normalizedLabel = label.toUpperCase();
+
+    if (isCancelled || normalizedStatus.includes('CANCEL') || normalizedLabel.includes('CANCEL')) {
+      return '#EF4444'; // rojo cancelado
+    }
+    if (normalizedStatus.includes('DELAY') || normalizedLabel.includes('DEMO')) {
+      return '#F59E0B'; // naranja demorado
+    }
+    if (normalizedStatus.includes('ON_TIME') || normalizedLabel.includes('HORA') || normalizedLabel.includes('A TIEMPO')) {
+      return '#10B981'; // verde en horario
+    }
+    if (normalizedStatus.includes('DIVERT')) return '#8B5CF6';
+    if (normalizedStatus.includes('BOARD')) return '#3B82F6';
+    if (normalizedStatus.includes('ACTIVE')) return '#2563EB';
+    if (normalizedStatus.includes('SCHED')) return '#6B7280';
+
+    return '#507BD8'; // fallback azul
+  }, []);
 
   const normalizeAircraftType = (type: string): string => {
     const cleaned = type?.trim();
@@ -359,22 +407,80 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
     { key: 'totalCapacity', title: 'Capacidad Publicada', render: (value: number | null) => (value ?? 0).toLocaleString() }
   ], [toggleAirline]);
 
+  // Normalize flight updates by status (cancelled/on time/delayed/etc.)
+  const normalizedFlightUpdates = useMemo(() => {
+    if (!flightUpdatesData?.updates) {
+      return [];
+    }
+
+    return flightUpdatesData.updates
+      .map(update => {
+        const status = (update.status || '').trim().toUpperCase();
+        const count = parseCount(update.count);
+        return {
+          status,
+          label: formatStatusLabel(status),
+          count,
+          latestDeparture: update.latest_departure,
+          latestArrival: update.latest_arrival,
+          isCancelled: status === 'CANCELLED' || status === 'CANCELED'
+        };
+      })
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+  }, [flightUpdatesData, formatStatusLabel]);
+
+  const flightUpdatesChartData: ChartDataPoint[] = useMemo(() => {
+    return normalizedFlightUpdates.map(update => ({
+      name: update.label,
+      value: update.count ?? 0,
+      color: getStatusColor(update.status, update.label, update.isCancelled)
+    }));
+  }, [normalizedFlightUpdates, getStatusColor]);
+
+  const flightUpdatesChartHeight = Math.max(260, Math.min(520, Math.max(1, flightUpdatesChartData.length) * 70));
+
+  const flightUpdatesTableData: TableData[] = useMemo(() => {
+    return normalizedFlightUpdates.map(update => ({
+      status: update.label,
+      count: update.count ?? 0,
+      latestDeparture: formatDateTime(update.latestDeparture),
+      latestArrival: formatDateTime(update.latestArrival),
+      isCancelled: update.isCancelled
+    }));
+  }, [normalizedFlightUpdates, formatDateTime]);
+
+  const flightUpdatesColumns: TableColumn[] = [
+    { key: 'status', title: 'Estado' },
+    { key: 'count', title: 'Vuelos', render: (value: number) => (value ?? 0).toLocaleString('es-ES') },
+    { key: 'latestDeparture', title: 'Última salida' },
+    { key: 'latestArrival', title: 'Última llegada' }
+  ];
+
   // Show loading state with skeleton
   if (isLoading) {
     return (
       <div className="tab-content">
         {/* Fleet Performance Metrics Skeleton */}
         <section className="metrics-section">
-          <h2 className="section-title">Rendimiento de la Flota</h2>
-          <div className="grid grid-cols-4">
-            <MetricCardSkeleton count={4} />
-          </div>
-        </section>
+        <h2 className="section-title">Rendimiento de la Flota</h2>
+        <div className="grid grid-cols-4">
+          <MetricCardSkeleton count={4} />
+        </div>
+      </section>
 
-        {/* Popular Airlines Distribution Skeleton */}
-        <section className="metrics-section">
-          <h2 className="section-title">Distribución de Aerolíneas Populares</h2>
-          <div className="grid grid-cols-1">
+      {/* Flight updates skeleton */}
+      <section className="metrics-section">
+        <h2 className="section-title">Actualizaciones de Vuelos</h2>
+        <div className="grid grid-cols-2">
+          <ChartCardSkeleton height={320} type="barHorizontal" />
+          <DataTableSkeleton rows={6} columns={5} />
+        </div>
+      </section>
+
+      {/* Popular Airlines Distribution Skeleton */}
+      <section className="metrics-section">
+        <h2 className="section-title">Distribución de Aerolíneas Populares</h2>
+        <div className="grid grid-cols-1">
             <ChartCardSkeleton height={400} type="pie" />
           </div>
         </section>
@@ -428,6 +534,43 @@ const FleetManagement: React.FC<FleetManagementProps> = ({ selectedPeriod }) => 
             <MetricCard key={`fleet-metric-${index}`} metric={metric} />
           ))}
         </div>
+      </section>
+
+      {/* Flight Updates Overview */}
+      <section className="metrics-section">
+        <h2 className="section-title">Actualizaciones de Vuelos</h2>
+        {updatesError ? (
+          <div className="error-container" style={{ marginTop: '1rem' }}>
+            <p>No pudimos cargar las actualizaciones de vuelos. Refrescá para reintentar.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2" style={{ marginTop: '1rem' }}>
+            {updatesLoading ? (
+              <>
+                <ChartCardSkeleton height={flightUpdatesChartHeight} type="barHorizontal" />
+                <DataTableSkeleton rows={6} columns={5} />
+              </>
+            ) : (
+              <>
+                <ChartCard 
+                  title="Estados de vuelos reportados"
+                  data={flightUpdatesChartData}
+                  type="barHorizontal"
+                  height={flightUpdatesChartHeight}
+                  valueKey="value"
+                  nameKey="name"
+                  color="#507BD8"
+                />
+                <DataTable 
+                  title="Detalle por estado (incluye cancelaciones)"
+                  data={flightUpdatesTableData}
+                  columns={flightUpdatesColumns}
+                  maxRows={8}
+                />
+              </>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Popular Airlines Distribution */}

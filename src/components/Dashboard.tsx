@@ -66,6 +66,7 @@ const Dashboard: React.FC = () => {
         // Invalidate all queries used by FleetManagement
         queryClient.invalidateQueries({ queryKey: analyticsKeys.catalogAirlineSummary(days, 'USD') });
         queryClient.invalidateQueries({ queryKey: analyticsKeys.airlinesCapacity(days) });
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.flightUpdates(days) });
         break;
       case 'summary':
         // Invalidate all queries used by Summary

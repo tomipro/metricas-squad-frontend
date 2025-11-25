@@ -220,6 +220,16 @@ export interface AirlinesCapacity {
   }>;
 }
 
+export interface FlightUpdates {
+  period_days: number;
+  updates: Array<{
+    status: string;
+    count: number;
+    latest_departure: string | null;
+    latest_arrival: string | null;
+  }>;
+}
+
 // =============================================================================
 // ANALYTICS API FUNCTIONS
 // =============================================================================
@@ -384,5 +394,13 @@ export const getAirlinesCapacity = (days: number = 7): Promise<AirlinesCapacity>
   apiRequest<AirlinesCapacity>(analyticsApi, {
     method: 'GET',
     url: '/analytics/airlines/capacity',
+    params: { days },
+  });
+
+// Flight updates by status (cancelled/on time/delayed/etc.)
+export const getFlightUpdates = (days: number = 7): Promise<FlightUpdates> =>
+  apiRequest<FlightUpdates>(analyticsApi, {
+    method: 'GET',
+    url: '/analytics/flights/updates',
     params: { days },
   });

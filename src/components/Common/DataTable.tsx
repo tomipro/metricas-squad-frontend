@@ -29,19 +29,24 @@ const DataTable: React.FC<DataTableProps> = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   const hasData = data && data.length > 0;
+  const normalizeText = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
     if (!hasData || !searchTerm.trim()) return data;
     
-    const term = searchTerm.toLowerCase().trim();
+    const term = normalizeText(searchTerm.trim());
     return data.filter((row) => {
       return columns.some((column) => {
         const value = row[column.key];
         if (value === undefined || value === null) return false;
         
         // Handle render functions - try to get the raw value
-        const stringValue = String(value).toLowerCase();
+        const stringValue = normalizeText(String(value));
         return stringValue.includes(term);
       });
     });
